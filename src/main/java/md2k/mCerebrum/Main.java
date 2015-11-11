@@ -36,17 +36,17 @@ public class Main {
 
     public static void main(String[] args) {
 
-        String path = "/Users/hnat/Downloads/csvData/";
-        String[] p = {"p10","p11","p12","p14","p15","p16"};
+        String path = "/Users/hnat/Downloads/processedrawdata/SI";
 
-        for(String person: p) {
 
+        for(int i = 1; i < 25; i++) {
+            String person = String.format("%02d",i);
             CSVParser tp = new CSVParser();
-            tp.importData(path + person + "_rip.csv", AUTOSENSE.CHEST_RIP);
-            tp.importData(path + person + "_ecg.csv", AUTOSENSE.CHEST_ECG);
-            tp.importData(path + person + "_accelx.csv", AUTOSENSE.CHEST_ACCEL_X);
-            tp.importData(path + person + "_accely.csv", AUTOSENSE.CHEST_ACCEL_Y);
-            tp.importData(path + person + "_accelz.csv", AUTOSENSE.CHEST_ACCEL_Z);
+            tp.importData(path + person + "/rip.txt", AUTOSENSE.CHEST_RIP);
+            tp.importData(path + person + "/ecg.txt", AUTOSENSE.CHEST_ECG);
+            tp.importData(path + person + "/accelx.txt", AUTOSENSE.CHEST_ACCEL_X);
+            tp.importData(path + person + "/accely.txt", AUTOSENSE.CHEST_ACCEL_Y);
+            tp.importData(path + person + "/accelz.txt", AUTOSENSE.CHEST_ACCEL_Z);
 
             cStress stress = new cStress(60 * 1000, "ecg_rip_accel_60_realtime.model", "ecg_rip_accel_60_realtime_meanstdev.dat");
 

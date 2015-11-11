@@ -394,6 +394,7 @@ public class cStress {
                 datastreams.get("org.md2k.cstress.data.accely").data.size() > 300 &&
                 datastreams.get("org.md2k.cstress.data.accelz").data.size() > 300) {
 
+            //TODO: This should be moved outside of the stress applications to intercept data before arriving here
 //            //This check must happen before any normalization.  It operates on the RAW signals.
 //            RipQualityCalculation ripQuality = new RipQualityCalculation(5, 50, 4500, 20, 2, 20, 150);
 //            ECGQualityCalculation ecgQuality = new ECGQualityCalculation(3, 50, 4500, 20, 2, 47);
@@ -404,23 +405,13 @@ public class cStress {
 //
 //
 
-
             AccelerometerFeatures af = new AccelerometerFeatures(datastreams);
-
-
             ECGFeatures ef = new ECGFeatures(datastreams);
 
-//
-//                //Passed ECGStats and Activity to ECGFeatures, so that appropriate normalization can be carried out, and if there's no activity, RR intervals can be added to ECGStats
-//                ecgFeatures = new ECGFeatures(ecg, sensorConfig.getFrequency("ECG"), ECGStats, accelFeatures.Activity);
-//                ripFeatures = new RIPFeatures(rip, ecgFeatures, sensorConfig, RIPBinnedStats, RIPStats, accelFeatures.Activity);
-//
-//
+            RIPFeatures rf = new RIPFeatures(datastreams);
+
 //                probabilityOfStress = evaluteStressModel(accelFeatures, ecgFeatures, ripFeatures, AUTOSENSE.STRESS_PROBABILTY_THRESHOLD);
-//
-//            } catch (Exception e) {
-//                e.printStackTrace();
-//            }
+
         } else {
             System.out.println("Not enough data to process");
         }

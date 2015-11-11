@@ -2,6 +2,7 @@ package md2k.mCerebrum.cStress.Features;
 
 import md2k.mCerebrum.cStress.Library.Core;
 import md2k.mCerebrum.cStress.Autosense.SensorConfiguration;
+import md2k.mCerebrum.cStress.Library.DataStream;
 import md2k.mCerebrum.cStress.Statistics.BinnedStatistics;
 import md2k.mCerebrum.cStress.Statistics.RunningStatistics;
 import md2k.mCerebrum.cStress.Structs.DataPoint;
@@ -9,6 +10,7 @@ import md2k.mCerebrum.cStress.Structs.PeakValley;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 
 /**
  * Copyright (c) 2015, The University of Memphis, MD2K Center
@@ -78,89 +80,86 @@ public class RIPFeatures {
      * @param ecg
      * @param sc
      */
-    public RIPFeatures(DataPoint[] rip, ECGFeatures ecg, SensorConfiguration sc, BinnedStatistics[] RIPBinnedStats, RunningStatistics[] RIPStats, boolean activity) {
+    public RIPFeatures(HashMap<String, DataStream> datastreams) {
 
         //Initialize statistics
-        InspDuration = new DescriptiveStatistics();
-        ExprDuration = new DescriptiveStatistics();
-        RespDuration = new DescriptiveStatistics();
-        Stretch = new DescriptiveStatistics();
-        IERatio = new DescriptiveStatistics();
-        RSA = new DescriptiveStatistics();
+//        InspDuration = new DescriptiveStatistics();
+//        ExprDuration = new DescriptiveStatistics();
+//        RespDuration = new DescriptiveStatistics();
+//        Stretch = new DescriptiveStatistics();
+//        IERatio = new DescriptiveStatistics();
+//        RSA = new DescriptiveStatistics();
 
-        InspDurationNormalized = new DescriptiveStatistics();
-        ExprDurationNormalized = new DescriptiveStatistics();
-        RespDurationNormalized = new DescriptiveStatistics();
-        StretchNormalized = new DescriptiveStatistics();
-        RSANormalized = new DescriptiveStatistics();
+//        InspDurationNormalized = new DescriptiveStatistics();
+//        ExprDurationNormalized = new DescriptiveStatistics();
+//        RespDurationNormalized = new DescriptiveStatistics();
+//        StretchNormalized = new DescriptiveStatistics();
+//        RSANormalized = new DescriptiveStatistics();
 
-        sensorConfig = sc;
-
-
-        PeakValley pvData = Core.peakvalley_v2(rip, sensorConfig); //There is no trailing valley in this output.
+        String pv = Core.peakvalley_v2(datastreams); //There is no trailing valley in this output.
 
 
-        this.peaks = new DataPoint[pvData.peakIndex.size()];
-        this.valleys = new DataPoint[pvData.valleyIndex.size()];
-
-        for (int i = 0; i < this.peaks.length; i++) {
-            DataPoint dp = new DataPoint(rip[pvData.peakIndex.get(i)].timestamp, rip[pvData.peakIndex.get(i)].value);
-            this.peaks[i] = dp;
-        }
-
-        for (int i = 0; i < this.valleys.length; i++) {
-            DataPoint dp = new DataPoint(rip[pvData.valleyIndex.get(i)].timestamp, rip[pvData.valleyIndex.get(i)].value);
-            this.valleys[i] = dp;
-        }
-
-
-        if (!activity) {
-            for (int i = 0; i < pvData.valleyIndex.size() - 1; i++) {
-                RIPBinnedStats[RIPFeatures.FIND_INSP_DURATION].add((int) (rip[pvData.peakIndex.get(i)].timestamp - rip[pvData.valleyIndex.get(i)].timestamp));
-                RIPBinnedStats[RIPFeatures.FIND_EXPR_DURATION].add((int) (rip[pvData.valleyIndex.get(i + 1)].timestamp - rip[pvData.peakIndex.get(i)].timestamp));
-                RIPBinnedStats[RIPFeatures.FIND_RESP_DURATION].add((int) (rip[pvData.valleyIndex.get(i + 1)].timestamp - rip[pvData.valleyIndex.get(i)].timestamp));
-                RIPBinnedStats[RIPFeatures.FIND_STRETCH].add((int) (rip[pvData.peakIndex.get(i)].value - rip[pvData.valleyIndex.get(i)].value));
-                RIPBinnedStats[RIPFeatures.FIND_RSA].add((int) (rsaCalculateCycle(rip[pvData.valleyIndex.get(i)].timestamp, rip[pvData.valleyIndex.get(i + 1)].timestamp, ecg) * 1000));
-            }
-        }
-
-        //Add values, normalized with Winsorized mean and std
-        for (int i = 0; i < pvData.valleyIndex.size() - 1; i++) {
-            InspDuration.addValue(rip[pvData.peakIndex.get(i)].timestamp - rip[pvData.valleyIndex.get(i)].timestamp);
-            InspDurationNormalized.addValue(((rip[pvData.peakIndex.get(i)].timestamp - rip[pvData.valleyIndex.get(i)].timestamp) - RIPBinnedStats[RIPFeatures.FIND_INSP_DURATION].getWinsorizedMean()) / RIPBinnedStats[RIPFeatures.FIND_INSP_DURATION].getWinsorizedStdev());
-
-            ExprDuration.addValue(rip[pvData.valleyIndex.get(i + 1)].timestamp - rip[pvData.peakIndex.get(i)].timestamp);
-            ExprDurationNormalized.addValue(((rip[pvData.valleyIndex.get(i + 1)].timestamp - rip[pvData.peakIndex.get(i)].timestamp) - RIPBinnedStats[RIPFeatures.FIND_EXPR_DURATION].getWinsorizedMean()) / RIPBinnedStats[RIPFeatures.FIND_EXPR_DURATION].getWinsorizedStdev());
-
-            RespDuration.addValue(rip[pvData.valleyIndex.get(i + 1)].timestamp - rip[pvData.valleyIndex.get(i)].timestamp);
-            RespDurationNormalized.addValue(((rip[pvData.valleyIndex.get(i + 1)].timestamp - rip[pvData.valleyIndex.get(i)].timestamp) - RIPBinnedStats[RIPFeatures.FIND_RESP_DURATION].getWinsorizedMean()) / RIPBinnedStats[RIPFeatures.FIND_RESP_DURATION].getWinsorizedStdev());
-
-            Stretch.addValue(rip[pvData.peakIndex.get(i)].value - rip[pvData.valleyIndex.get(i)].value);
-            StretchNormalized.addValue(((rip[pvData.peakIndex.get(i)].value - rip[pvData.valleyIndex.get(i)].value) - RIPBinnedStats[RIPFeatures.FIND_STRETCH].getWinsorizedMean()) / RIPBinnedStats[RIPFeatures.FIND_STRETCH].getWinsorizedStdev());
-
-            IERatio.addValue(InspDuration.getElement((int) InspDuration.getN() - 1) / ExprDuration.getElement((int) ExprDuration.getN() - 1));
-
-            RSA.addValue(rsaCalculateCycle(rip[pvData.valleyIndex.get(i)].timestamp, rip[pvData.valleyIndex.get(i + 1)].timestamp, ecg));
-            RSANormalized.addValue((rsaCalculateCycle(rip[pvData.valleyIndex.get(i)].timestamp, rip[pvData.valleyIndex.get(i + 1)].timestamp, ecg) - RIPBinnedStats[RIPFeatures.FIND_RSA].getWinsorizedMean() / 1000.0) / (RIPBinnedStats[RIPFeatures.FIND_RSA].getWinsorizedStdev() / 1000));
-
-        }
-
-
-        BreathRate = pvData.valleyIndex.size();
-
-        MinuteVolume = 0.0;
-        for (int i = 0; i < pvData.valleyIndex.size(); i++) {
-            MinuteVolume += (rip[pvData.peakIndex.get(i)].timestamp - rip[pvData.valleyIndex.get(i)].timestamp) / 1000.0 * (rip[pvData.peakIndex.get(i)].value - rip[pvData.valleyIndex.get(i)].value) / 2.0;
-        }
-        MinuteVolume *= pvData.valleyIndex.size();
-
-        if (!activity) {
-            RIPStats[0].add(BreathRate);
-            RIPStats[1].add(MinuteVolume);
-        }
-
-        BreathRateNormalized = (BreathRate - RIPStats[0].getMean()) / RIPStats[0].getStdev();
-        MinuteVolumeNormalized = (MinuteVolume - RIPStats[1].getMean()) / RIPStats[1].getStdev();
+//        this.peaks = new DataPoint[pvData.peakIndex.size()];
+//        this.valleys = new DataPoint[pvData.valleyIndex.size()];
+//
+//        for (int i = 0; i < this.peaks.length; i++) {
+//            DataPoint dp = new DataPoint(rip[pvData.peakIndex.get(i)].timestamp, rip[pvData.peakIndex.get(i)].value);
+//            this.peaks[i] = dp;
+//        }
+//
+//        for (int i = 0; i < this.valleys.length; i++) {
+//            DataPoint dp = new DataPoint(rip[pvData.valleyIndex.get(i)].timestamp, rip[pvData.valleyIndex.get(i)].value);
+//            this.valleys[i] = dp;
+//        }
+//
+//
+//        if (!activity) {
+//            for (int i = 0; i < pvData.valleyIndex.size() - 1; i++) {
+//                RIPBinnedStats[RIPFeatures.FIND_INSP_DURATION].add((int) (rip[pvData.peakIndex.get(i)].timestamp - rip[pvData.valleyIndex.get(i)].timestamp));
+//                RIPBinnedStats[RIPFeatures.FIND_EXPR_DURATION].add((int) (rip[pvData.valleyIndex.get(i + 1)].timestamp - rip[pvData.peakIndex.get(i)].timestamp));
+//                RIPBinnedStats[RIPFeatures.FIND_RESP_DURATION].add((int) (rip[pvData.valleyIndex.get(i + 1)].timestamp - rip[pvData.valleyIndex.get(i)].timestamp));
+//                RIPBinnedStats[RIPFeatures.FIND_STRETCH].add((int) (rip[pvData.peakIndex.get(i)].value - rip[pvData.valleyIndex.get(i)].value));
+//                RIPBinnedStats[RIPFeatures.FIND_RSA].add((int) (rsaCalculateCycle(rip[pvData.valleyIndex.get(i)].timestamp, rip[pvData.valleyIndex.get(i + 1)].timestamp, ecg) * 1000));
+//            }
+//        }
+//
+//        //Add values, normalized with Winsorized mean and std
+//        for (int i = 0; i < pvData.valleyIndex.size() - 1; i++) {
+//            InspDuration.addValue(rip[pvData.peakIndex.get(i)].timestamp - rip[pvData.valleyIndex.get(i)].timestamp);
+//            InspDurationNormalized.addValue(((rip[pvData.peakIndex.get(i)].timestamp - rip[pvData.valleyIndex.get(i)].timestamp) - RIPBinnedStats[RIPFeatures.FIND_INSP_DURATION].getWinsorizedMean()) / RIPBinnedStats[RIPFeatures.FIND_INSP_DURATION].getWinsorizedStdev());
+//
+//            ExprDuration.addValue(rip[pvData.valleyIndex.get(i + 1)].timestamp - rip[pvData.peakIndex.get(i)].timestamp);
+//            ExprDurationNormalized.addValue(((rip[pvData.valleyIndex.get(i + 1)].timestamp - rip[pvData.peakIndex.get(i)].timestamp) - RIPBinnedStats[RIPFeatures.FIND_EXPR_DURATION].getWinsorizedMean()) / RIPBinnedStats[RIPFeatures.FIND_EXPR_DURATION].getWinsorizedStdev());
+//
+//            RespDuration.addValue(rip[pvData.valleyIndex.get(i + 1)].timestamp - rip[pvData.valleyIndex.get(i)].timestamp);
+//            RespDurationNormalized.addValue(((rip[pvData.valleyIndex.get(i + 1)].timestamp - rip[pvData.valleyIndex.get(i)].timestamp) - RIPBinnedStats[RIPFeatures.FIND_RESP_DURATION].getWinsorizedMean()) / RIPBinnedStats[RIPFeatures.FIND_RESP_DURATION].getWinsorizedStdev());
+//
+//            Stretch.addValue(rip[pvData.peakIndex.get(i)].value - rip[pvData.valleyIndex.get(i)].value);
+//            StretchNormalized.addValue(((rip[pvData.peakIndex.get(i)].value - rip[pvData.valleyIndex.get(i)].value) - RIPBinnedStats[RIPFeatures.FIND_STRETCH].getWinsorizedMean()) / RIPBinnedStats[RIPFeatures.FIND_STRETCH].getWinsorizedStdev());
+//
+//            IERatio.addValue(InspDuration.getElement((int) InspDuration.getN() - 1) / ExprDuration.getElement((int) ExprDuration.getN() - 1));
+//
+//            RSA.addValue(rsaCalculateCycle(rip[pvData.valleyIndex.get(i)].timestamp, rip[pvData.valleyIndex.get(i + 1)].timestamp, ecg));
+//            RSANormalized.addValue((rsaCalculateCycle(rip[pvData.valleyIndex.get(i)].timestamp, rip[pvData.valleyIndex.get(i + 1)].timestamp, ecg) - RIPBinnedStats[RIPFeatures.FIND_RSA].getWinsorizedMean() / 1000.0) / (RIPBinnedStats[RIPFeatures.FIND_RSA].getWinsorizedStdev() / 1000));
+//
+//        }
+//
+//
+//        BreathRate = pvData.valleyIndex.size();
+//
+//        MinuteVolume = 0.0;
+//        for (int i = 0; i < pvData.valleyIndex.size(); i++) {
+//            MinuteVolume += (rip[pvData.peakIndex.get(i)].timestamp - rip[pvData.valleyIndex.get(i)].timestamp) / 1000.0 * (rip[pvData.peakIndex.get(i)].value - rip[pvData.valleyIndex.get(i)].value) / 2.0;
+//        }
+//        MinuteVolume *= pvData.valleyIndex.size();
+//
+//        if (!activity) {
+//            RIPStats[0].add(BreathRate);
+//            RIPStats[1].add(MinuteVolume);
+//        }
+//
+//        BreathRateNormalized = (BreathRate - RIPStats[0].getMean()) / RIPStats[0].getStdev();
+//        MinuteVolumeNormalized = (MinuteVolume - RIPStats[1].getMean()) / RIPStats[1].getStdev();
 
 
     }

@@ -58,11 +58,11 @@ public class CSVParser implements Iterable<CSVDataPoint> {
         try {
             scanner = new Scanner(file);
             while (scanner.hasNext()) {
-                tokens = scanner.nextLine().split(",");
-                timestamp = (long) Double.parseDouble(tokens[0]) * 1000 + channel;
-                data = (int) Double.parseDouble(tokens[1]);
+                tokens = scanner.nextLine().split(" ");
+                timestamp = Long.parseLong(tokens[1]);
+                data = (int) Double.parseDouble(tokens[0]);
 
-                tempPacket = new CSVDataPoint(channel, timestamp / 1000, data);
+                tempPacket = new CSVDataPoint(channel, timestamp, data);
                 this.data.put(tempPacket.timestamp, tempPacket);
             }
         } catch (FileNotFoundException e) {

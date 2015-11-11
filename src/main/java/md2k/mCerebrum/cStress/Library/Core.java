@@ -291,29 +291,29 @@ public class Core {
      * @param n
      * @return
      */
-    public static DataPoint[] smooth(DataPoint[] rip, int n) {
-        DataPoint[] result = new DataPoint[rip.length];
+    public static ArrayList<DataPoint> smooth(ArrayList<DataPoint> rip, int n) {
+        ArrayList<DataPoint> result = new ArrayList<DataPoint>();
 
         int windowSize = 1;
         double sum;
-        for(int i=0; i<rip.length; i++) {
+        for(int i=0; i<rip.size(); i++) {
             sum = 0.0;
             int startingPoint;
-            if( (rip.length-i+1) < n ) {
-                startingPoint = rip.length-windowSize;
+            if( (rip.size()-i+1) < n ) {
+                startingPoint = rip.size()-windowSize;
             } else {
                 startingPoint = (int) Math.max(Math.floor(i - n / 2), 0);
             }
             for(int j=startingPoint; j<startingPoint+windowSize; j++) {
-                sum += rip[j].value;
+                sum += rip.get(j).value;
             }
             sum /= (double) windowSize;
 
-            result[i] = new DataPoint(rip[i].timestamp, sum);
+            result.add( new DataPoint(rip.get(i).timestamp, sum) );
 
-            if(windowSize < n && (rip.length-i) > n) { //Increase windowSize until n
+            if(windowSize < n && (rip.size()-i) > n) { //Increase windowSize until n
                 windowSize += 2;
-            } else if ( (rip.length-i+1) < n) {
+            } else if ( (rip.size()-i+1) < n) {
                 windowSize -= 2;
             }
         }
@@ -369,63 +369,68 @@ public class Core {
      * @param timestamp RR-interval timestamps
      * @return Outlier array
      */
-    public static int[] detect_outlier_v2(double[] sample, long[] timestamp) {
+    public static String detect_outlier_v2(HashMap<String, DataStream> datastreams) {
         ArrayList<Integer> outlier = new ArrayList<Integer>();
 
-        if (timestamp.length != 0) {
-            ArrayList<Double> valid_rrInterval = new ArrayList<Double>();
-            ArrayList<Long> valid_timestamp = new ArrayList<Long>();
-            DescriptiveStatistics valid_rrInterval_stats = new DescriptiveStatistics();
-            for (int i = 0; i < sample.length; i++) {
-                if (sample[i] > 0.3 && sample[i] < 2.0) {
-                    valid_rrInterval.add(sample[i]);
-                    valid_rrInterval_stats.addValue(sample[i]);
-                    valid_timestamp.add(timestamp[i]);
+        DataStream ds = datastreams.get("org.md2k.cstress.data.ecg.rr_value");
+
+        if (ds.data.size() != 0) {
+
+            if (!datastreams.containsKey("org.md2k.cstress.data.ecg.valid_rr_interval")) {
+                datastreams.put("org.md2k.cstress.data.ecg.valid_rr_interval", new DataStream("ECG-valid-rr_interval"));
+            }
+            for (int i = 0; i < ds.data.size(); i++) {
+                if (ds.data.get(i).value > 0.3 && ds.data.get(i).value < 2.0) {
+                    datastreams.get("org.md2k.cstress.data.ecg.valid_rr_interval").add(ds.data.get(i));
                 }
             }
-            DescriptiveStatistics diff_rrInterval = new DescriptiveStatistics();
-            for (int i = 1; i < valid_rrInterval.size(); i++) {
-                diff_rrInterval.addValue(Math.abs(valid_rrInterval.get(i) - valid_rrInterval.get(i - 1)));
+
+            if (!datastreams.containsKey("org.md2k.cstress.data.ecg.rr_value.diff")) {
+                datastreams.put("org.md2k.cstress.data.ecg.rr_value.diff", new DataStream("ECG-rr_value-diff"));
             }
-            double MED = AUTOSENSE.MED_CONSTANT * 0.5 * (diff_rrInterval.getPercentile(75) - diff_rrInterval.getPercentile(25));
-            double MAD = (valid_rrInterval_stats.getPercentile(50) - AUTOSENSE.MAD_CONSTANT * 0.5 * (diff_rrInterval.getPercentile(75) - diff_rrInterval.getPercentile(25))) / 3.0;
+            for (int i = 1; i < datastreams.get("org.md2k.cstress.data.ecg.valid_rr_interval").data.size(); i++) {
+                datastreams.get("org.md2k.cstress.data.ecg.rr_value.diff").add(new DataPoint(datastreams.get("org.md2k.cstress.data.ecg.valid_rr_interval").data.get(i).timestamp, Math.abs(datastreams.get("org.md2k.cstress.data.ecg.valid_rr_interval").data.get(i).value - datastreams.get("org.md2k.cstress.data.ecg.valid_rr_interval").data.get(i - 1).value)));
+            }
+
+            double MED = AUTOSENSE.MED_CONSTANT * 0.5 * ( datastreams.get("org.md2k.cstress.data.ecg.rr_value.diff").descriptiveStats.getPercentile(75) -  datastreams.get("org.md2k.cstress.data.ecg.rr_value.diff").descriptiveStats.getPercentile(25));
+            double MAD = (datastreams.get("org.md2k.cstress.data.ecg.valid_rr_interval").descriptiveStats.getPercentile(50) - AUTOSENSE.MAD_CONSTANT * 0.5 * ( datastreams.get("org.md2k.cstress.data.ecg.rr_value.diff").descriptiveStats.getPercentile(75) -  datastreams.get("org.md2k.cstress.data.ecg.rr_value.diff").descriptiveStats.getPercentile(25))) / 3.0;
             double CBD = (MED + MAD) / 2.0;
             if (CBD < AUTOSENSE.CBD_THRESHOLD) {
                 CBD = AUTOSENSE.CBD_THRESHOLD;
             }
 
-            for (double aSample : sample) {
+            for (DataPoint aSample : ds.data) {
                 outlier.add(AUTOSENSE.QUALITY_BAD);
             }
             outlier.set(0, AUTOSENSE.QUALITY_GOOD);
-            double standard_rrInterval = valid_rrInterval.get(0);
+            double standard_rrInterval = datastreams.get("org.md2k.cstress.data.ecg.valid_rr_interval").data.get(0).value;
             boolean prev_beat_bad = false;
 
-            for (int i = 1; i < valid_rrInterval.size() - 1; i++) {
-                double ref = valid_rrInterval.get(i);
+            for (int i = 1; i < datastreams.get("org.md2k.cstress.data.ecg.valid_rr_interval").data.size() - 1; i++) {
+                double ref = datastreams.get("org.md2k.cstress.data.ecg.valid_rr_interval").data.get(i).value;
                 if (ref > AUTOSENSE.REF_MINIMUM && ref < AUTOSENSE.REF_MAXIMUM) {
-                    double beat_diff_prevGood = Math.abs(standard_rrInterval - valid_rrInterval.get(i));
-                    double beat_diff_pre = Math.abs(valid_rrInterval.get(i - 1) - valid_rrInterval.get(i));
-                    double beat_diff_post = Math.abs(valid_rrInterval.get(i) - valid_rrInterval.get(i + 1));
+                    double beat_diff_prevGood = Math.abs(standard_rrInterval - datastreams.get("org.md2k.cstress.data.ecg.valid_rr_interval").data.get(i).value);
+                    double beat_diff_pre = Math.abs(datastreams.get("org.md2k.cstress.data.ecg.valid_rr_interval").data.get(i - 1).value - datastreams.get("org.md2k.cstress.data.ecg.valid_rr_interval").data.get(i).value);
+                    double beat_diff_post = Math.abs(datastreams.get("org.md2k.cstress.data.ecg.valid_rr_interval").data.get(i).value - datastreams.get("org.md2k.cstress.data.ecg.valid_rr_interval").data.get(i + 1).value);
 
                     if ((prev_beat_bad && beat_diff_prevGood < CBD) || (prev_beat_bad && beat_diff_prevGood > CBD && beat_diff_pre <= CBD && beat_diff_post <= CBD)) {
-                        for (int j = 0; j < timestamp.length; j++) {
-                            if (timestamp[j] == valid_timestamp.get(i)) {
+                        for (int j = 0; j < ds.data.size(); j++) {
+                            if (ds.data.get(j).timestamp == datastreams.get("org.md2k.cstress.data.ecg.valid_rr_interval").data.get(i).timestamp) {
                                 outlier.set(j, AUTOSENSE.QUALITY_GOOD);
                             }
                         }
                         prev_beat_bad = false;
-                        standard_rrInterval = valid_rrInterval.get(i);
+                        standard_rrInterval = datastreams.get("org.md2k.cstress.data.ecg.valid_rr_interval").data.get(i).value;
                     } else if (prev_beat_bad && beat_diff_prevGood > CBD && (beat_diff_pre > CBD || beat_diff_post > CBD)) {
                         prev_beat_bad = true;
                     } else if (!prev_beat_bad && beat_diff_pre <= CBD) {
-                        for (int j = 0; j < timestamp.length; j++) {
-                            if (timestamp[j] == valid_timestamp.get(i)) {
+                        for (int j = 0; j < ds.data.size(); j++) {
+                            if (ds.data.get(j).timestamp == datastreams.get("org.md2k.cstress.data.ecg.valid_rr_interval").data.get(i).timestamp) {
                                 outlier.set(j, AUTOSENSE.QUALITY_GOOD);
                             }
                         }
                         prev_beat_bad = false;
-                        standard_rrInterval = valid_rrInterval.get(i);
+                        standard_rrInterval = datastreams.get("org.md2k.cstress.data.ecg.valid_rr_interval").data.get(i).value;
                     } else if (!prev_beat_bad && beat_diff_pre > CBD) {
                         prev_beat_bad = true;
                     }
@@ -435,11 +440,14 @@ public class Core {
 
         }
 
-        int[] result = new int[outlier.size()];
-        for (int i = 0; i < outlier.size(); i++) {
-            result[i] = outlier.get(i);
+        if (!datastreams.containsKey("org.md2k.cstress.data.ecg.outlier")) {
+            datastreams.put("org.md2k.cstress.data.ecg.outlier", new DataStream("ECG-rr-outlier"));
         }
-        return result;
+        for (int i = 0; i < outlier.size(); i++) {
+            datastreams.get("org.md2k.cstress.data.ecg.outlier").add(new DataPoint(ds.data.get(i).timestamp, outlier.get(i)));
+        }
+
+        return "org.md2k.cstress.data.ecg.outlier";
     }
 
 
@@ -934,138 +942,160 @@ public class Core {
         return result;
     }
 
-    public static PeakValley peakvalley_v2(DataPoint[] rip, SensorConfiguration sc) {
+    public static String peakvalley_v2(HashMap<String, DataStream> datastreams) {
 
-        DataPoint[] sample = smooth(rip, AUTOSENSE.PEAK_VALLEY_SMOOTHING_SIZE);
+        if (!datastreams.containsKey("org.md2k.cstress.data.rip.smooth")) {
+            datastreams.put("org.md2k.cstress.data.rip.smooth", new DataStream("RIP-smooth"));
+        }
+        DataStream rip_smooth = datastreams.get("org.md2k.cstress.data.rip.smooth");
 
-        int windowLength = (int) Math.round(AUTOSENSE.WINDOW_LENGTH_SECS * sc.getFrequency("RIP"));
+        ArrayList<DataPoint> sample = smooth(datastreams.get("org.md2k.cstress.data.rip").data, AUTOSENSE.PEAK_VALLEY_SMOOTHING_SIZE);
+        for(DataPoint dp: sample) {
+            rip_smooth.add(dp);
+        }
 
-        DataPoint[] MAC = mac(sample, windowLength);
 
-        ArrayList<Integer> upInterceptIndex = new ArrayList<Integer>();
-        ArrayList<Integer> downInterceptIndex = new ArrayList<Integer>();
+        int windowLength = (int) Math.round(AUTOSENSE.WINDOW_LENGTH_SECS * (Double) datastreams.get("org.md2k.cstress.data.rip").metadata.get("frequency"));
 
-        for (int i = 1; i < MAC.length; i++) {
-            if (sample[i - 1].value <= MAC[i - 1].value && sample[i].value > MAC[i].value) {
-                upInterceptIndex.add(i - 1);
-            } else if (sample[i - 1].value >= MAC[i - 1].value && sample[i].value < MAC[i].value) {
-                downInterceptIndex.add(i - 1);
+        if (!datastreams.containsKey("org.md2k.cstress.data.rip.mac")) {
+            datastreams.put("org.md2k.cstress.data.rip.mac", new DataStream("RIP-mac"));
+        }
+        DataStream rip_mac = datastreams.get("org.md2k.cstress.data.rip.mac");
+        ArrayList<DataPoint> MAC = smooth(rip_smooth.data, windowLength); //TWH: Replaced MAC with Smooth after discussion on 11/9/2015
+        for(DataPoint dp: MAC) {
+            rip_mac.add(dp);
+        }
+
+
+        if (!datastreams.containsKey("org.md2k.cstress.data.rip.upIntercepts")) {
+            datastreams.put("org.md2k.cstress.data.rip.upIntercepts", new DataStream("RIP-upIntercept"));
+        }
+        if (!datastreams.containsKey("org.md2k.cstress.data.rip.downIntercepts")) {
+            datastreams.put("org.md2k.cstress.data.rip.downIntercepts", new DataStream("RIP-downIntercept"));
+        }
+
+
+        for (int i = 1; i < rip_mac.data.size()-1; i++) {
+            if (rip_smooth.data.get(i-1).value < rip_mac.data.get(i).value && rip_smooth.data.get(i+1).value > rip_mac.data.get(i).value) {
+                datastreams.get("org.md2k.cstress.data.rip.upIntercepts").add(rip_mac.data.get(i));
+            } else if (rip_smooth.data.get(i-1).value > rip_mac.data.get(i).value && rip_smooth.data.get(i+1).value < rip_mac.data.get(i).value) {
+                datastreams.get("org.md2k.cstress.data.rip.downIntercepts").add(rip_mac.data.get(i));
             }
         }
 
-        Intercepts UIDI = InterceptOutlierDetectorRIPLamia(upInterceptIndex, downInterceptIndex, sample, (int) (AUTOSENSE.SAMPLE_LENGTH_SECS*1000), sc);
+        String UIDI = InterceptOutlierDetectorRIPLamia( datastreams, (int) (AUTOSENSE.SAMPLE_LENGTH_SECS*1000));
 
-        int[] UI = UIDI.UI;
-        int[] DI = UIDI.DI;
-
-        ArrayList<Integer> peakIndex = new ArrayList<Integer>();
-        ArrayList<Integer> valleyIndex = new ArrayList<Integer>();
-
-        for (int i = 0; i < DI.length-1; i++) {
-
-            int peakindex = 0;
-            double peakValue = -1e9;
-            for (int j = UI[i]; j < DI[i + 1]; j++) {
-                if (sample[j].value > peakValue) {
-                    peakindex = j;
-                    peakValue = sample[j].value;
-                }
-            }
-            peakIndex.add(peakindex);
-
-            DataPoint[] temp = new DataPoint[UI[i] - DI[i]];
-            System.arraycopy(sample, DI[i], temp, 0, UI[i] - DI[i]);
-
-            double vlValueMinimum = 1e9;
-            int vlValueIndex = -999999;
-            for(int j=0; j<temp.length; j++) {
-                if(vlValueMinimum > temp[j].value) {
-                    vlValueMinimum = temp[j].value;
-                    vlValueIndex = j;
-                }
-            }
-            if (vlValueIndex == -999999) {
-                continue;
-            }
-            valleyIndex.add(DI[i] + vlValueIndex - 1);
-
-        }
-
-        double[] inspirationAmplitude = new double[valleyIndex.size()];
-        double[] expirationAmplitude;
-
-        double meanInspirationAmplitude = 0.0;
-        double meanExpirationAmplitude;
-
-        for (int i = 0; i < valleyIndex.size() - 1; i++) {
-            inspirationAmplitude[i] = sample[peakIndex.get(i)].value - sample[valleyIndex.get(i)].value;
-
-            meanInspirationAmplitude += inspirationAmplitude[i];
-        }
-        meanInspirationAmplitude /= (valleyIndex.size() - 1);
-
-        ArrayList<Integer> finalPeakIndex = new ArrayList<Integer>();
-        ArrayList<Integer> finalValleyIndex = new ArrayList<Integer>();
-
-        for (int i = 0; i < inspirationAmplitude.length; i++) {
-            if (inspirationAmplitude[i] > AUTOSENSE.INSPIRATION_EXPIRATION_AMPLITUDE_THRESHOLD_FACTOR * meanInspirationAmplitude) {
-                finalPeakIndex.add(peakIndex.get(i));
-                finalValleyIndex.add(valleyIndex.get(i));
-            }
-        }
-
-        PeakValley result = new PeakValley();
-
-        if (finalValleyIndex.size() > 0) {
-            expirationAmplitude = new double[finalValleyIndex.size() - 1];
-            meanExpirationAmplitude = 0.0;
-            for (int i = 0; i < finalValleyIndex.size() - 1; i++) {
-                expirationAmplitude[i] = Math.abs(sample[finalValleyIndex.get(i + 1)].value - sample[finalPeakIndex.get(i)].value);
-                meanExpirationAmplitude += expirationAmplitude[i];
-            }
-            meanExpirationAmplitude /= (finalValleyIndex.size() - 1);
-
-
-            ArrayList<Integer> resultPeakIndex = new ArrayList<Integer>();
-            ArrayList<Integer> resultValleyIndex = new ArrayList<Integer>();
-
-            resultValleyIndex.add(finalValleyIndex.get(0));
-
-            for (int i = 0; i < expirationAmplitude.length; i++) {
-                if (expirationAmplitude[i] > AUTOSENSE.INSPIRATION_EXPIRATION_AMPLITUDE_THRESHOLD_FACTOR * meanExpirationAmplitude) {
-                    resultValleyIndex.add(finalValleyIndex.get(i + 1));
-                    resultPeakIndex.add(finalPeakIndex.get(i));
-                }
-            }
-            resultPeakIndex.add(finalPeakIndex.get(finalPeakIndex.size() - 1));
-
-            result.valleyIndex = resultValleyIndex;
-            result.peakIndex = resultPeakIndex;
-        }
-        return result;
+//        int[] UI = UIDI.UI;
+//        int[] DI = UIDI.DI;
+//
+//        ArrayList<Integer> peakIndex = new ArrayList<Integer>();
+//        ArrayList<Integer> valleyIndex = new ArrayList<Integer>();
+//
+//        for (int i = 0; i < DI.length-1; i++) {
+//
+//            int peakindex = 0;
+//            double peakValue = -1e9;
+//            for (int j = UI[i]; j < DI[i + 1]; j++) {
+//                if (sample[j].value > peakValue) {
+//                    peakindex = j;
+//                    peakValue = sample[j].value;
+//                }
+//            }
+//            peakIndex.add(peakindex);
+//
+//            DataPoint[] temp = new DataPoint[UI[i] - DI[i]];
+//            System.arraycopy(sample, DI[i], temp, 0, UI[i] - DI[i]);
+//
+//            double vlValueMinimum = 1e9;
+//            int vlValueIndex = -999999;
+//            for(int j=0; j<temp.length; j++) {
+//                if(vlValueMinimum > temp[j].value) {
+//                    vlValueMinimum = temp[j].value;
+//                    vlValueIndex = j;
+//                }
+//            }
+//            if (vlValueIndex == -999999) {
+//                continue;
+//            }
+//            valleyIndex.add(DI[i] + vlValueIndex - 1);
+//
+//        }
+//
+//        double[] inspirationAmplitude = new double[valleyIndex.size()];
+//        double[] expirationAmplitude;
+//
+//        double meanInspirationAmplitude = 0.0;
+//        double meanExpirationAmplitude;
+//
+//        for (int i = 0; i < valleyIndex.size() - 1; i++) {
+//            inspirationAmplitude[i] = sample[peakIndex.get(i)].value - sample[valleyIndex.get(i)].value;
+//
+//            meanInspirationAmplitude += inspirationAmplitude[i];
+//        }
+//        meanInspirationAmplitude /= (valleyIndex.size() - 1);
+//
+//        ArrayList<Integer> finalPeakIndex = new ArrayList<Integer>();
+//        ArrayList<Integer> finalValleyIndex = new ArrayList<Integer>();
+//
+//        for (int i = 0; i < inspirationAmplitude.length; i++) {
+//            if (inspirationAmplitude[i] > AUTOSENSE.INSPIRATION_EXPIRATION_AMPLITUDE_THRESHOLD_FACTOR * meanInspirationAmplitude) {
+//                finalPeakIndex.add(peakIndex.get(i));
+//                finalValleyIndex.add(valleyIndex.get(i));
+//            }
+//        }
+//
+//        PeakValley result = new PeakValley();
+//
+//        if (finalValleyIndex.size() > 0) {
+//            expirationAmplitude = new double[finalValleyIndex.size() - 1];
+//            meanExpirationAmplitude = 0.0;
+//            for (int i = 0; i < finalValleyIndex.size() - 1; i++) {
+//                expirationAmplitude[i] = Math.abs(sample[finalValleyIndex.get(i + 1)].value - sample[finalPeakIndex.get(i)].value);
+//                meanExpirationAmplitude += expirationAmplitude[i];
+//            }
+//            meanExpirationAmplitude /= (finalValleyIndex.size() - 1);
+//
+//
+//            ArrayList<Integer> resultPeakIndex = new ArrayList<Integer>();
+//            ArrayList<Integer> resultValleyIndex = new ArrayList<Integer>();
+//
+//            resultValleyIndex.add(finalValleyIndex.get(0));
+//
+//            for (int i = 0; i < expirationAmplitude.length; i++) {
+//                if (expirationAmplitude[i] > AUTOSENSE.INSPIRATION_EXPIRATION_AMPLITUDE_THRESHOLD_FACTOR * meanExpirationAmplitude) {
+//                    resultValleyIndex.add(finalValleyIndex.get(i + 1));
+//                    resultPeakIndex.add(finalPeakIndex.get(i));
+//                }
+//            }
+//            resultPeakIndex.add(finalPeakIndex.get(finalPeakIndex.size() - 1));
+//
+//            result.valleyIndex = resultValleyIndex;
+//            result.peakIndex = resultPeakIndex;
+//        }
+        return "org.";
     }
 
-    /**
-     * Moving Average Curve
-     * @param sample
-     * @param windowLength
-     * @return
-     */
-    public static DataPoint[] mac(DataPoint[] sample, int windowLength) {
-
-        DataPoint[] result = new DataPoint[sample.length-2*windowLength];
-
-        for(int i=windowLength;i < sample.length-windowLength; i++) {
-            result[i-windowLength] = new DataPoint(0, 0.0);
-            for(int j=-windowLength; j<windowLength; j++) {
-                result[i-windowLength].value += sample[i+j].value;
-            }
-            result[i-windowLength].value /= (2.0*windowLength); //Compute mean
-            result[i-windowLength].timestamp = sample[i+windowLength].timestamp;
-
-        }
-        return result;
-    }
+//    /**
+//     * Moving Average Curve
+//     * @param sample
+//     * @param windowLength
+//     * @return
+//     */
+//    public static ArrayList<DataPoint> mac(ArrayList<DataPoint> sample, int windowLength) {
+//
+//        ArrayList<DataPoint> result = new ArrayList<DataPoint>();
+//
+//        for(int i=windowLength;i < sample.size()-windowLength; i++) {
+//            result.add( new DataPoint(0, 0.0) );
+//            for(int j=-windowLength; j<windowLength; j++) {
+//                result.get(i-windowLength).value += sample.get(i+j).value;
+//            }
+//            result.get(i-windowLength).value /= (2.0*windowLength); //Compute mean
+//            result.get(i-windowLength).timestamp = sample.get(i+windowLength).timestamp;
+//
+//        }
+//        return result;
+//    }
 
     /**
      * Intercept Outlier Detector
@@ -1076,162 +1106,102 @@ public class Core {
      * @param windowLength
      * @return
      */
-    public static Intercepts InterceptOutlierDetectorRIPLamia(ArrayList<Integer> upInterceptIndex, ArrayList<Integer> downInterceptIndex, DataPoint[] sample, int windowLength, SensorConfiguration sc) {
-        Intercepts result = new Intercepts();
+    public static String InterceptOutlierDetectorRIPLamia(HashMap<String, DataStream> datastreams, int windowLength) {
+        String result = "";
 
-        int minimumLength = Math.min(upInterceptIndex.size(), downInterceptIndex.size());
+        DataStream upIntercepts = datastreams.get("org.md2k.cstress.data.rip.upIntercepts");
+        DataStream downIntercepts = datastreams.get("org.md2k.cstress.data.rip.downIntercepts");
 
-        ArrayList<Integer> D = new ArrayList<Integer>();
-        ArrayList<Integer> U = new ArrayList<Integer>();
-        for(int i=0; i<minimumLength; i++) {
-            U.add(upInterceptIndex.get(i));
-            D.add(downInterceptIndex.get(i));
+
+        if (!datastreams.containsKey("org.md2k.cstress.data.rip.upIntercepts.filtered")) {
+            datastreams.put("org.md2k.cstress.data.rip.upIntercepts.filtered", new DataStream("RIP-upIntercepts-filtered"));
+        }
+        if (!datastreams.containsKey("org.md2k.cstress.data.rip.downIntercepts.filtered")) {
+            datastreams.put("org.md2k.cstress.data.rip.downIntercepts.filtered", new DataStream("RIP-downIntercepts-filtered"));
         }
 
-        ArrayList<Integer> UI = new ArrayList<Integer>();
-        ArrayList<Integer> DI = new ArrayList<Integer>();
+        DataStream upInterceptsFiltered = datastreams.get("org.md2k.cstress.data.rip.upIntercepts.filtered");
+        DataStream downInterceptsFiltered = datastreams.get("org.md2k.cstress.data.rip.downIntercepts.filtered");
 
-        int i = 0;
-        int j = 0;
-        while(i < U.size()-2) {
-            if (j > (D.size()-1)) {
-                break;
-            }
+        int upPointer = 0;
+        int downPointer = 0;
+        boolean updownstate = true; //True check for up intercept
+        downInterceptsFiltered.add(downIntercepts.data.get(downPointer)); //Initialize with starting point
 
-            while(j < D.size()-1) {
-               if(U.get(0) < D.get(0)) {
-                   if (i == U.size() || j == D.size()) {
-                       break;
-                   }
-
-                   if (U.get(i) < D.get(j) && D.get(j) < U.get(i+1)) {
-                       UI.add(U.get(i));
-                       ArrayList<Integer> ind = new ArrayList<Integer>();
-                       for (Integer aD : D) {
-                           if ((aD > D.get(j)) && (aD < U.get(i+1))) {
-                               ind.add(aD);
-                           }
-                       }
-                       if (ind.size() == 0) {
-                           DI.add(D.get(j));
-                           j++;
-                       } else {
-                           DI.add(ind.get(ind.size()-1));
-                           j = ind.get(ind.size()-1)+1;
-                       }
-                       i++;
-                   } else if (U.get(i) < D.get(j) && D.get(j) > U.get(i+1)) {
-                       DI.add(D.get(i));
-                       ArrayList<Integer> ind = new ArrayList<Integer>();
-                       for (Integer aU : U) {
-                           if ((aU > U.get(i)) && (aU < D.get(j))) {
-                               ind.add(aU);
-                           }
-                       }
-                       if (ind.size() == 0) {
-                           UI.add(U.get(i));
-                           i++;
-                       } else {
-                           UI.add(ind.get(ind.size()-1));
-                           i = ind.get(ind.size()-1)+1;
-                       }
-                       j++;
-                   }
-               } else if (D.get(0) < U.get(0)) {
-                   if (i == D.size() || j == U.size()) {
-                       break;
-                   }
-
-                   if (D.get(i) < U.get(j) && U.get(j) < D.get(i+1)) {
-                       DI.add(D.get(i));
-                       ArrayList<Integer> ind = new ArrayList<Integer>();
-                       for (Integer aU : U) {
-                           if ((aU > U.get(j)) && (aU < D.get(i+1))) {
-                               ind.add(aU);
-                           }
-                       }
-                       if (ind.size() == 0) {
-                           UI.add(U.get(j));
-                           j++;
-                       } else {
-                           UI.add(ind.get(ind.size()-1));
-                           j = ind.get(ind.size()-1)+1;
-                       }
-                       i++;
-                   } else if (D.get(i) < U.get(j) && U.get(j) > D.get(i+1)) {
-                       UI.add(U.get(i));
-                       ArrayList<Integer> ind = new ArrayList<Integer>();
-                       for (Integer aD : D) {
-                           if ((aD > D.get(i)) && (aD < U.get(j))) {
-                               ind.add(aD);
-                           }
-                       }
-                       if (ind.size() == 0) {
-                           DI.add(D.get(i));
-                           i++;
-                       } else {
-                           DI.add(ind.get(ind.size()-1));
-                           i = ind.get(ind.size()-1)+1;
-                       }
-                       j++;
-                   }
-               }
+        while(downPointer != downIntercepts.data.size() && upPointer != upIntercepts.data.size()) {
+            if (updownstate) { //Check for up intercept
+                if (downIntercepts.data.get(downPointer).timestamp < upIntercepts.data.get(upPointer).timestamp) {
+                    //Replace down intercept
+                    downInterceptsFiltered.data.get(downInterceptsFiltered.data.size()-1).timestamp = downIntercepts.data.get(downPointer).timestamp;
+                    downInterceptsFiltered.data.get(downInterceptsFiltered.data.size()-1).value = downIntercepts.data.get(downPointer).value;
+                    downPointer++;
+                } else {
+                    //Found up intercept
+                    upInterceptsFiltered.add(upIntercepts.data.get(upPointer));
+                    upPointer++;
+                    updownstate = false;
+                }
+            } else { //Check for down intercept
+                if (downIntercepts.data.get(downPointer).timestamp > upIntercepts.data.get(upPointer).timestamp) {
+                    //Replace up intercept
+                    upInterceptsFiltered.data.get(upInterceptsFiltered.data.size()-1).timestamp = upIntercepts.data.get(upPointer).timestamp;
+                    upInterceptsFiltered.data.get(upInterceptsFiltered.data.size()-1).value = upIntercepts.data.get(upPointer).value;
+                    upPointer++;
+                } else {
+                    //Found down intercept
+                    downInterceptsFiltered.add(downIntercepts.data.get(downPointer));
+                    downPointer++;
+                    updownstate = true;
+                }
             }
         }
 
-        if (UI.size() ==0 && DI.size() == 0) {
-            return result;
-        }
-        if (UI.get(0) < DI.get(0)) {
-            UI.remove(0);
-        }
+        //TODO: is this still needed?
+//        double fr;
+//        for(int ii=0; ii<DI.size()-1; ii++) {
+//            fr = (double)windowLength / (sample[DI.get(ii+1)].timestamp - sample[DI.get(ii)].timestamp);
+//            if (fr >= AUTOSENSE.RESPIRATION_MINIMUM && fr <= AUTOSENSE.RESPIRATION_MAXIMUM) {
+//                DownIntercept.add(DI.get(ii));
+//                UpIntercept.add(UI.get(ii));
+//            }
+//        }
 
-        minimumLength = Math.min(UI.size(),DI.size());
-        while(UI.size() > minimumLength) {
-            UI.remove(UI.size()-1);
+        if (!datastreams.containsKey("org.md2k.cstress.data.rip.upIntercepts.filtered.1sec")) {
+            datastreams.put("org.md2k.cstress.data.rip.upIntercepts.filtered.1sec", new DataStream("RIP-upIntercepts-filtered-1sec"));
         }
-        while(DI.size() > minimumLength) {
-            DI.remove(DI.size()-1);
+        if (!datastreams.containsKey("org.md2k.cstress.data.rip.downIntercepts.filtered.1sec")) {
+            datastreams.put("org.md2k.cstress.data.rip.downIntercepts.filtered.1sec", new DataStream("RIP-downIntercepts-filtered-1sec"));
         }
+        DataStream upInterceptsFiltered1sec = datastreams.get("org.md2k.cstress.data.rip.upIntercepts.filtered.1sec");
+        DataStream downInterceptsFiltered1sec = datastreams.get("org.md2k.cstress.data.rip.downIntercepts.filtered.1sec");
 
 
-        ArrayList<Integer> DownIntercept = new ArrayList<Integer>();
-        ArrayList<Integer> UpIntercept = new ArrayList<Integer>();
-        double fr;
-        for(int ii=0; ii<DI.size()-1; ii++) {
-            fr = (double)windowLength / (sample[DI.get(ii+1)].timestamp - sample[DI.get(ii)].timestamp);
-            if (fr >= AUTOSENSE.RESPIRATION_MINIMUM && fr <= AUTOSENSE.RESPIRATION_MAXIMUM) {
-                DownIntercept.add(DI.get(ii));
-                UpIntercept.add(UI.get(ii));
+        for(int i=1; i<downInterceptsFiltered.data.size(); i++) {
+            if( (downInterceptsFiltered.data.get(i).timestamp - downInterceptsFiltered.data.get(i-1).timestamp) > 1000.0) {
+                downInterceptsFiltered1sec.add(downInterceptsFiltered.data.get(i-1));
+                upInterceptsFiltered1sec.add(upInterceptsFiltered.data.get(i-1));
             }
         }
+        downInterceptsFiltered1sec.add(downInterceptsFiltered.data.get(downInterceptsFiltered.data.size()-1));
+
+        if (!datastreams.containsKey("org.md2k.cstress.data.rip.upIntercepts.filtered.1sec.t20")) {
+            datastreams.put("org.md2k.cstress.data.rip.upIntercepts.filtered.1sec.t20", new DataStream("RIP-upIntercepts-filtered-1sec-t20"));
+        }
+        if (!datastreams.containsKey("org.md2k.cstress.data.rip.downIntercepts.filtered.1sec.t20")) {
+            datastreams.put("org.md2k.cstress.data.rip.downIntercepts.filtered.1sec.t20", new DataStream("RIP-downIntercepts-filtered-1sec-t20"));
+        }
+        DataStream upInterceptsFiltered1sect20 = datastreams.get("org.md2k.cstress.data.rip.upIntercepts.filtered.1sec.t20");
+        DataStream downInterceptsFiltered1sect20 = datastreams.get("org.md2k.cstress.data.rip.downIntercepts.filtered.1sec.t20");
 
 
-        ArrayList<Integer> DownIntercept2 = new ArrayList<Integer>();
-        ArrayList<Integer> UpIntercept2 = new ArrayList<Integer>();
-        double equivalentSamplePoints = AUTOSENSE.WINDOW_LENGTH_SECS/ AUTOSENSE.WINDOW_DIVIDER_FACTOR * sc.getFrequency("RIP");
-        double upToDownDistance;
-        for(int ii=0; ii<DownIntercept.size()-1; ii++) {
-            upToDownDistance = DownIntercept.get(ii+1)-UpIntercept.get(ii)+1;
-            if(upToDownDistance > equivalentSamplePoints) {
-                UpIntercept2.add(UpIntercept.get(ii));
-                DownIntercept2.add(DownIntercept.get(ii));
+        downInterceptsFiltered1sect20.add(downInterceptsFiltered1sec.data.get(0));
+        for(int i=0; i<upInterceptsFiltered1sec.data.size(); i++) {
+            if( (downInterceptsFiltered1sec.data.get(i+1).timestamp - upInterceptsFiltered1sec.data.get(i).timestamp) > (2.0/20.0)) {
+                downInterceptsFiltered1sect20.add(downInterceptsFiltered1sec.data.get(i+1));
+                upInterceptsFiltered1sect20.add(upInterceptsFiltered.data.get(i));
             }
         }
-
-        if(DownIntercept2.size() > 0) {
-            DownIntercept2.remove(DownIntercept2.size() - 1);
-        }
-
-
-        result.UI = new int[UpIntercept2.size()];
-        result.DI = new int[UpIntercept2.size()-1];
-        for(int ii=0; ii<UpIntercept2.size(); ii++) {
-            result.UI[ii] = UpIntercept2.get(ii);
-            if(ii < UpIntercept2.size()-1) {
-                result.DI[ii] = DownIntercept2.get(ii);
-            }
-        }
+        downInterceptsFiltered1sect20.data.remove(downInterceptsFiltered1sect20.data.size()-1); //Not necessary to keep
 
         return result;
     }

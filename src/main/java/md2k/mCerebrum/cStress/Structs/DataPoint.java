@@ -38,4 +38,8 @@ public class DataPoint {
         this.value = other.value;
         this.timestamp = other.timestamp;
     }
+
+    public String toString() {
+        return "DP:(" + this.timestamp + "," + this.value + ")";
+    }
 }
