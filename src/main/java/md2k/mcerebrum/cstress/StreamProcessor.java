@@ -70,8 +70,6 @@ public class StreamProcessor {
         this.windowSize = windowSize;
 
         configureDataStreams();
-        //TODO: Require nazir's comment for the following line. Updated by Monowar as it causes crash
-        configurePuffMarkerWristDataStreams(16.0, 16.0);
     }
 
     /**
@@ -111,19 +109,25 @@ public class StreamProcessor {
         datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_PROBABILITY).metadata.put("frequency", 1000.0 / windowSize);
         datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_STRESSLABEL).metadata.put("frequency", 1000.0 / windowSize);
 
-    }
-
-    public void configurePuffMarkerWristDataStreams(double freqAccel, double freqGyro) {
-        datastreams.getDataPointStream(PUFFMARKER.ORG_MD2K_PUFF_MARKER_DATA_ACCEL_X).metadata.put("frequency", freqAccel);
-        datastreams.getDataPointStream(PUFFMARKER.ORG_MD2K_PUFF_MARKER_DATA_ACCEL_Y).metadata.put("frequency", freqAccel);
-        datastreams.getDataPointStream(PUFFMARKER.ORG_MD2K_PUFF_MARKER_DATA_ACCEL_Z).metadata.put("frequency", freqAccel);
-
-        datastreams.getDataPointStream(PUFFMARKER.ORG_MD2K_PUFF_MARKER_DATA_GYRO_X).metadata.put("frequency", freqGyro);
-        datastreams.getDataPointStream(PUFFMARKER.ORG_MD2K_PUFF_MARKER_DATA_GYRO_Y).metadata.put("frequency", freqGyro);
-        datastreams.getDataPointStream(PUFFMARKER.ORG_MD2K_PUFF_MARKER_DATA_GYRO_Z).metadata.put("frequency", freqGyro);
+        configurePuffMarkerWristDataStreams(PUFFMARKER.LEFT_WRIST, 16.0, 16.0);
+        configurePuffMarkerWristDataStreams(PUFFMARKER.RIGHT_WRIST, 16.0, 16.0);
 
     }
 
+    public void settingWristFrequencies(String wrist, double freqAccel, double freqGyro) {
+        configurePuffMarkerWristDataStreams(wrist, freqAccel, freqGyro);
+    }
+
+    private void configurePuffMarkerWristDataStreams(String wrist, double freqAccel, double freqGyro) {
+        datastreams.getDataPointStream(PUFFMARKER.ORG_MD2K_PUFF_MARKER_DATA_ACCEL_X + wrist).metadata.put("frequency", freqAccel);
+        datastreams.getDataPointStream(PUFFMARKER.ORG_MD2K_PUFF_MARKER_DATA_ACCEL_Y + wrist).metadata.put("frequency", freqAccel);
+        datastreams.getDataPointStream(PUFFMARKER.ORG_MD2K_PUFF_MARKER_DATA_ACCEL_Z + wrist).metadata.put("frequency", freqAccel);
+
+        datastreams.getDataPointStream(PUFFMARKER.ORG_MD2K_PUFF_MARKER_DATA_GYRO_X + wrist).metadata.put("frequency", freqGyro);
+        datastreams.getDataPointStream(PUFFMARKER.ORG_MD2K_PUFF_MARKER_DATA_GYRO_Y + wrist).metadata.put("frequency", freqGyro);
+        datastreams.getDataPointStream(PUFFMARKER.ORG_MD2K_PUFF_MARKER_DATA_GYRO_Z + wrist).metadata.put("frequency", freqGyro);
+
+    }
 
     /**
      * set the path for the feature files used by this stream processor

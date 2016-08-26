@@ -61,7 +61,7 @@ public class AutosenseWristFeatures {
         DataPointStream gyroy2min = datastreams.getDataPointStream(PUFFMARKER.ORG_MD2K_PUFF_MARKER_DATA_GYRO_Y_2_MIN + wrist);
         DataPointStream gyroz2min = datastreams.getDataPointStream(PUFFMARKER.ORG_MD2K_PUFF_MARKER_DATA_GYRO_Z_2_MIN + wrist);
 
-        int wLen = (int) Math.round(PUFFMARKER.BUFFER_SIZE_2MIN_SEC * (Double) datastreams.getDataPointStream(PUFFMARKER.ORG_MD2K_PUFF_MARKER_DATA_GYRO_X).metadata.get("frequency"));
+        int wLen = (int) Math.round(PUFFMARKER.BUFFER_SIZE_2MIN_SEC * (Double) datastreams.getDataPointStream(PUFFMARKER.ORG_MD2K_PUFF_MARKER_DATA_GYRO_X+wrist).metadata.get("frequency"));
         long timestamp2minbefore = gyrox.data.get(0).timestamp - PUFFMARKER.BUFFER_SIZE_2MIN_SEC * 1000;
         gyrox2min.setHistoricalBufferSize(wLen);
         gyroy2min.setHistoricalBufferSize(wLen);
@@ -74,8 +74,8 @@ public class AutosenseWristFeatures {
         doInterpolation(gyrox2min, gyroy2min, gyroz2min, null, null, null);
         Vector.magnitude(gyr_mag, gyrox2min.data, gyroy2min.data, gyroz2min.data);
 
-        int firstSize = (int) Math.round(PUFFMARKER.GYR_MAG_FIRST_MOVING_AVG_SMOOTHING_SIZE_TH_TIME * (Double) datastreams.getDataPointStream(PUFFMARKER.ORG_MD2K_PUFF_MARKER_DATA_GYRO_X).metadata.get("frequency"));
-        int slowSize = (int) Math.round(PUFFMARKER.GYR_MAG_SLOW_MOVING_AVG_SMOOTHING_SIZE_TH_TIME * (Double) datastreams.getDataPointStream(PUFFMARKER.ORG_MD2K_PUFF_MARKER_DATA_GYRO_X).metadata.get("frequency"));
+        int firstSize = (int) Math.round(PUFFMARKER.GYR_MAG_FIRST_MOVING_AVG_SMOOTHING_SIZE_TH_TIME * (Double) datastreams.getDataPointStream(PUFFMARKER.ORG_MD2K_PUFF_MARKER_DATA_GYRO_X+wrist).metadata.get("frequency"));
+        int slowSize = (int) Math.round(PUFFMARKER.GYR_MAG_SLOW_MOVING_AVG_SMOOTHING_SIZE_TH_TIME * (Double) datastreams.getDataPointStream(PUFFMARKER.ORG_MD2K_PUFF_MARKER_DATA_GYRO_X+wrist).metadata.get("frequency"));
 
         DataPointStream gyr_mag_800 = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_GYRO_MAG800 + wrist);
         Smoothing.smooth(gyr_mag_800, gyr_mag, firstSize);
