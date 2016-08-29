@@ -1,6 +1,7 @@
 package md2k.mcerebrum.cstress.features;
 
 import md2k.mcerebrum.cstress.StreamConstants;
+import md2k.mcerebrum.cstress.library.datastream.DataArrayStream;
 import md2k.mcerebrum.cstress.library.datastream.DataPointStream;
 import md2k.mcerebrum.cstress.library.datastream.DataStreams;
 import md2k.mcerebrum.cstress.library.structs.DataPoint;
@@ -24,7 +25,7 @@ public class SmokingEpisodeGeneration {
         DataPointStream puffLabelDataStream = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_PUFFLABEL);
         puffLabelDataStream.setHistoricalBufferSize(PUFFLABEL_BUFFER_SIZE);
         DataPointStream puffProbDataStream = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_PROBABILITY);
-        DataPointStream puffFVDataStream = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_FV);
+        DataArrayStream puffFVDataStream = datastreams.getDataArrayStream(StreamConstants.ORG_MD2K_PUFFMARKER_FV);
 
         DataPoint lastPuff = getLastHistoricalValue(puffLabelDataStream);
         Long lastPuffTimeStamp = 0L;
@@ -33,7 +34,7 @@ public class SmokingEpisodeGeneration {
 
         DataPointStream puffLabelDataStreamMinute = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_PUFFLABEL_MINUTE);
         DataPointStream puffProbDataStreamMinute = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_PROBABILITY_MINUTE);
-        DataPointStream puffFVDataStreamMinute = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_FV_MINUTE);
+        DataArrayStream puffFVDataStreamMinute = datastreams.getDataArrayStream(StreamConstants.ORG_MD2K_PUFFMARKER_FV_MINUTE);
 
         for (int i = 0; i < puffLabelDataStreamMinute.data.size(); i++) {
             DataPoint dp = puffLabelDataStreamMinute.data.get(i);
@@ -59,7 +60,7 @@ public class SmokingEpisodeGeneration {
                 i++;
             long currentTimestamp = last10PuffsRev.get(i - 1).timestamp;
             DataPoint lastEpi = getLastHistoricalValue(smokingEpisodeDataStream);
-            if ((lastEpi == null) || (lastEpi != null && (currentTimestamp - lastEpi.timestamp) > MINIMUM_TIME_DIFFERENCE_BETWEEN_EPISODES)) {
+            if (lastEpi == null || currentTimestamp - lastEpi.timestamp > MINIMUM_TIME_DIFFERENCE_BETWEEN_EPISODES) {
                 smokingEpisodeDataStream.add(new DataPoint(currentTimestamp, 1));
             }
         }
