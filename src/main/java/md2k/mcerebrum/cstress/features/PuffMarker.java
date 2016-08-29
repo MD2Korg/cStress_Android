@@ -78,7 +78,7 @@ public class PuffMarker {
                     DataPointArray fv = computePuffMarkerFeatures(datastreams, wrist, startIndex, endIndex);
                     if (fv != null) {
 
-                        DataArrayStream fvStream = datastreams.getDataArrayStream(StreamConstants.ORG_MD2K_PUFFMARKER_FV);
+                        DataArrayStream fvStream = datastreams.getDataArrayStream(StreamConstants.ORG_MD2K_PUFFMARKER_FV_MINUTE);
                         fvStream.add(fv);
                     }
                 }

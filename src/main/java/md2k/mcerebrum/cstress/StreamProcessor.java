@@ -253,7 +253,7 @@ public class StreamProcessor {
      */
     private void runpuffMarker() {
         SVCModel model = (SVCModel) models.get("puffMarkerModel");
-        DataArrayStream featurevector = datastreams.getDataArrayStream(StreamConstants.ORG_MD2K_PUFFMARKER_FV);
+        DataArrayStream featurevector = datastreams.getDataArrayStream(StreamConstants.ORG_MD2K_PUFFMARKER_FV_MINUTE);
 
         for (DataPointArray ap : featurevector.data) {
             double prob = model.computeProbability(ap);
