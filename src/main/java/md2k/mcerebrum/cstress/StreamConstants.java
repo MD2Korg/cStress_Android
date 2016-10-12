@@ -166,6 +166,7 @@ public class StreamConstants {
     public static final String ORG_MD2K_PUFFMARKER_DATA_GYRO_MAG800 = "org.md2k.puffmarker.data.gyr.mag_800";
     public static final String ORG_MD2K_PUFFMARKER_DATA_GYRO_MAG8000 = "org.md2k.puffmarker.data.gyr.mag_8000";
     public static final String ORG_MD2K_PUFFMARKER_DATA_GYRO_INTERSECTIONS = "org.md2k.puffmarker.data.gyr.intersections";
+    public static final String ORG_MD2K_PUFFMARKER_DATA_CANDIDATE_INTERSECTIONS = "org.md2k.puffmarker.data.candidate.intersections";
     public static final String ORG_MD2K_PUFFMARKER_DATA_ACCEL_Y_INTERSECTIONS = "org.md2k.puffmarker.data.accel.y.intersections";
     public static final String ORG_MD2K_PUFFMARKER_DATA_WRIST_ROLL = "org.md2k.puffmarker.data.wrist.roll";
     public static final String ORG_MD2K_PUFFMARKER_DATA_WRIST_PITCH = "org.md2k.puffmarker.data.wrist.pitch";

@@ -62,7 +62,8 @@ public class RIPPuffmarkerFeatures {
         DataPointStream rip2min = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP);
         int wLen = (int) Math.round(PUFFMARKER.BUFFER_SIZE_2MIN_SEC* (Double) datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_RIP).metadata.get("frequency"));
         rip2min.setHistoricalBufferSize(wLen);
-        List<DataPoint> listHistoryRIP = new ArrayList<>(rip2min.getHistoricalNValues(wLen));
+        long timestamp2minbefore = rip.data.get(0).timestamp - PUFFMARKER.BUFFER_SIZE_2MIN_SEC * 1000;
+        List<DataPoint> listHistoryRIP = new ArrayList<>(rip2min.getHistoricalValues(timestamp2minbefore));
         rip2min.addAll(listHistoryRIP);
         rip2min.addAll(rip.data);
 

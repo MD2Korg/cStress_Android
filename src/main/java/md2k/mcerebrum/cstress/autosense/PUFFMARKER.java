@@ -98,7 +98,7 @@ public class PUFFMARKER {
     public static double GYR_MAG_FIRST_MOVING_AVG_SMOOTHING_SIZE_TH_TIME = 0.609; //0.609 sec, 13 samples
     public static double GYR_MAG_SLOW_MOVING_AVG_SMOOTHING_SIZE_TH_TIME= 6.140; // 6.14, 131 samples
 
-    public static int MINIMUM_CANDIDATE_WINDOW_DURATION_ = 500;
+    public static int MINIMUM_CANDIDATE_WINDOW_DURATION_ = 1000;
     public static int MAXIMUM_CANDIDATE_WINDOW_DURATION_ = 5000;
 
     public static double MINIMUM_GYRO_MEAN_HEIGHT_DIFFERENCE = 250*50.00/2048; // adc value=50

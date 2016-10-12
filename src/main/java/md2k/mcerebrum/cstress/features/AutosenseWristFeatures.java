@@ -61,7 +61,7 @@ public class AutosenseWristFeatures {
         DataPointStream gyroy2min = datastreams.getDataPointStream(PUFFMARKER.ORG_MD2K_PUFF_MARKER_DATA_GYRO_Y_2_MIN + wrist);
         DataPointStream gyroz2min = datastreams.getDataPointStream(PUFFMARKER.ORG_MD2K_PUFF_MARKER_DATA_GYRO_Z_2_MIN + wrist);
 
-        int wLen = (int) Math.round(PUFFMARKER.BUFFER_SIZE_2MIN_SEC * (Double) datastreams.getDataPointStream(PUFFMARKER.ORG_MD2K_PUFF_MARKER_DATA_GYRO_X+wrist).metadata.get("frequency"));
+        int wLen = (int) Math.round(PUFFMARKER.BUFFER_SIZE_3MIN_SEC * (Double) datastreams.getDataPointStream(PUFFMARKER.ORG_MD2K_PUFF_MARKER_DATA_GYRO_X+wrist).metadata.get("frequency"));
         long timestamp2minbefore = gyrox.data.get(0).timestamp - PUFFMARKER.BUFFER_SIZE_2MIN_SEC * 1000;
         gyrox2min.setHistoricalBufferSize(wLen);
         gyroy2min.setHistoricalBufferSize(wLen);
@@ -105,7 +105,8 @@ public class AutosenseWristFeatures {
         DataPointStream acl_y_8000 = datastreams.getDataPointStream("org.md2k.cstress.data.accel.y.mag8000" + wrist);
         Smoothing.smooth(acl_y_8000, accely2min, slowSize);
         DataPointStream acl_intersections = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_ACCEL_Y_INTERSECTIONS+ wrist);
-        segmentationUsingTwoMovingAverage(acl_intersections, acl_y_8000, acl_y_800, 0, 2);
+//        segmentationUsingTwoMovingAverage(acl_intersections, acl_y_8000, acl_y_800, 0, 2);
+        segmentationUsingThreshold(acl_intersections, acl_y_800, 0, 2);
 
         DataPointStream roll = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_WRIST_ROLL + wrist);
         DataPointStream pitch = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_WRIST_PITCH + wrist);
@@ -147,6 +148,44 @@ public class AutosenseWristFeatures {
         int curIndex = 0;
         for (int i = 0; i < slowMovingAverage.data.size(); i++) {
             double diff = slowMovingAverage.data.get(i).value - fastMovingAverage.data.get(i).value;
+            if (diff > THRESHOLD) {
+                if (curIndex == 0) {
+                    indexList[curIndex++] = i;
+                    indexList[curIndex] = i;
+                } else {
+                    if (i <= indexList[curIndex] + near) indexList[curIndex] = i;
+                    else {
+                        indexList[++curIndex] = i;
+                        indexList[++curIndex] = i;
+                    }
+                }
+            }
+        }
+        int[] intersectionIndex = new int[curIndex + 1];
+
+        if (curIndex > 0)
+            for (int i = 0; i < curIndex; i += 2) {
+                output.data.add(new DataPoint(indexList[i], indexList[i + 1]));
+                intersectionIndex[i] = indexList[i];
+            }
+        return intersectionIndex;
+    }
+
+    /**
+     * Segmentation based on threshold
+     *
+     * @param output            Output datastream
+     * @param input Input slow moving average
+     * @param THRESHOLD         Threshold //TODO: more details
+     * @param near              //TODO: What is this?
+     * @return
+     */
+    public static int[] segmentationUsingThreshold(DataPointStream output, DataPointStream input
+            , int THRESHOLD, int near) {
+        int[] indexList = new int[input.data.size()];
+        int curIndex = 0;
+        for (int i = 0; i < input.data.size(); i++) {
+            double diff = input.data.get(i).value;
             if (diff > THRESHOLD) {
                 if (curIndex == 0) {
                     indexList[curIndex++] = i;

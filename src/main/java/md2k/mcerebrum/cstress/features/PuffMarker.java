@@ -66,6 +66,9 @@ public class PuffMarker {
 
                 DataPointStream gyr_intersections = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_GYRO_INTERSECTIONS + wrist);
                 DataPointStream gyr_mag_stream = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_GYRO_MAG + wrist);
+                //TODO: remove later
+                DataPointStream candidate_intersections = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_CANDIDATE_INTERSECTIONS + wrist);
+                DataPointStream candidate_intersections_all = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_CANDIDATE_INTERSECTIONS +".nofilter." + wrist);
 
                 for (int i = 0; i < gyr_intersections.data.size(); i++) {
                     int startIndex = (int) gyr_intersections.data.get(i).timestamp;
@@ -74,12 +77,14 @@ public class PuffMarker {
                     long st = gyr_mag_stream.data.get(startIndex).timestamp;
                     long et = gyr_mag_stream.data.get(endIndex).timestamp;
 //                    if (st<startTime || st > endTime) continue;
+                    candidate_intersections_all.add(new DataPoint(st, et));
 
                     DataPointArray fv = computePuffMarkerFeatures(datastreams, wrist, startIndex, endIndex);
                     if (fv != null) {
 
                         DataArrayStream fvStream = datastreams.getDataArrayStream(StreamConstants.ORG_MD2K_PUFFMARKER_FV_MINUTE);
                         fvStream.add(fv);
+                        candidate_intersections.add(new DataPoint(st, et));
                     }
                 }
             }
@@ -176,9 +181,7 @@ public class PuffMarker {
                 l_stretch = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_MIN_AMPLITUDE).data.get(i).value;
                 roc_max = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_MAX_RATE_OF_CHANGE).data.get(i).value;
                 roc_min = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_MIN_RATE_OF_CHANGE).data.get(i).value;
-
             }
-
         }
 
         if (!isRIPPresent) return null;
