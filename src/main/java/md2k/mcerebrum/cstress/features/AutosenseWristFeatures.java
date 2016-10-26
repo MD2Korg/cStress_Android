@@ -106,7 +106,7 @@ public class AutosenseWristFeatures {
         Smoothing.smooth(acl_y_8000, accely2min, slowSize);
         DataPointStream acl_intersections = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_ACCEL_Y_INTERSECTIONS+ wrist);
 //        segmentationUsingTwoMovingAverage(acl_intersections, acl_y_8000, acl_y_800, 0, 2);
-        segmentationUsingThreshold(acl_intersections, acl_y_800, 0, 2);
+        segmentationUsingThreshold(acl_intersections, acl_y_800, 0.30, 2);
 
         DataPointStream roll = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_WRIST_ROLL + wrist);
         DataPointStream pitch = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_WRIST_PITCH + wrist);
@@ -181,7 +181,7 @@ public class AutosenseWristFeatures {
      * @return
      */
     public static int[] segmentationUsingThreshold(DataPointStream output, DataPointStream input
-            , int THRESHOLD, int near) {
+            , double THRESHOLD, int near) {
         int[] indexList = new int[input.data.size()];
         int curIndex = 0;
         for (int i = 0; i < input.data.size(); i++) {

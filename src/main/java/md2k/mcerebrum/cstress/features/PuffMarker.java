@@ -56,8 +56,8 @@ public class PuffMarker {
 
             String[] wristList = new String[]{PUFFMARKER.LEFT_WRIST, PUFFMARKER.RIGHT_WRIST};
 
-            long startTime = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_RIP).data.get(0).timestamp-60*1000;
-            long endTime = startTime + 60*1000;
+            long startTime = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_RIP).data.get(0).timestamp-80*1000;
+            long endTime = startTime + 100*1000;
 
             DataPointStream minute_segment_timestamp = datastreams.getDataPointStream("org.md2k.puffmarker.data.minute.segment"); // TODO: remove
             minute_segment_timestamp.add(new DataPoint(startTime, endTime)); //TODO: remove
@@ -79,7 +79,7 @@ public class PuffMarker {
 //                    if (st<startTime || st > endTime) continue;
                     candidate_intersections_all.add(new DataPoint(st, et));
 
-                    DataPointArray fv = computePuffMarkerFeatures(datastreams, wrist, startIndex, endIndex);
+                    DataPointArray fv = computePuffMarkerFeatures(datastreams, wrist, startIndex, endIndex, st, et);
                     if (fv != null) {
 
                         DataArrayStream fvStream = datastreams.getDataArrayStream(StreamConstants.ORG_MD2K_PUFFMARKER_FV_MINUTE);
@@ -117,9 +117,10 @@ public class PuffMarker {
      * @param wrist       Which wrist to operate on
      * @param startIndex  Starting index of a window
      * @param endIndex    Ending index of a window
-     * @return
+     * @param st
+     *@param et @return
      */
-    private DataPointArray computePuffMarkerFeatures(DataStreams datastreams, String wrist, int startIndex, int endIndex) {
+    private DataPointArray computePuffMarkerFeatures(DataStreams datastreams, String wrist, int startIndex, int endIndex, long st, long et) {
 
         /////////////// RESPIRATION FEATURES ////////////////////////
         double insp = 0;        //1
@@ -184,7 +185,10 @@ public class PuffMarker {
             }
         }
 
-        if (!isRIPPresent) return null;
+        if (!isRIPPresent){
+            datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_GYRO_INTERSECTIONS + wrist + ".filterRIP").add(new DataPoint(st, et));
+            return null;
+        }
 
         /////////////// WRIST FEATURES ////////////////////////
         long startTimestamp = gyr_mag_stream.data.get(startIndex).timestamp;
@@ -208,20 +212,38 @@ public class PuffMarker {
             long acl_seg_end_timestamp = gyr_mag_stream.data.get((int)dp.value).timestamp;
             if (Math.max(startTimestamp, acl_seg_start_timestamp) < Math.min(endTimestamp, acl_seg_end_timestamp)) {
                 double overlap_seg_length = Math.min(endTimestamp, acl_seg_end_timestamp) - Math.max(startTimestamp, acl_seg_start_timestamp);
-                if((endTimestamp-startTimestamp)*0.70 <= overlap_seg_length) {
+                double accl_seq_len = acl_seg_end_timestamp - acl_seg_start_timestamp;
+                double gyro_seq_len =endTimestamp-startTimestamp;
+                if((gyro_seq_len)*0.70 <= overlap_seg_length && (accl_seq_len)*0.70 <= overlap_seg_length) {
                     isHandUpDirection = true;
                 }
             }
 
         }
-        if (!isHandUpDirection) return null;
+        if (!isHandUpDirection){
+            datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_GYRO_INTERSECTIONS + wrist + ".filterACCL").add(new DataPoint(st, et));
+
+            return null;
+        }
 
         double meanHeight = mag8000stats.getMean() - mag800stats.getMean(); // 50 -> 50/1024
         double duration = endTimestamp - startTimestamp;
         boolean isValidRollPitch = checkValidRollPitchSimple(rollstats, pitchstats);
 
-        if (!(duration >= PUFFMARKER.MINIMUM_CANDIDATE_WINDOW_DURATION_ && duration <= PUFFMARKER.MAXIMUM_CANDIDATE_WINDOW_DURATION_) || !isValidRollPitch || meanHeight<PUFFMARKER.MINIMUM_GYRO_MEAN_HEIGHT_DIFFERENCE)
+        if (!(duration >= PUFFMARKER.MINIMUM_CANDIDATE_WINDOW_DURATION_ && duration <= PUFFMARKER.MAXIMUM_CANDIDATE_WINDOW_DURATION_)) {
+            datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_GYRO_INTERSECTIONS + wrist + ".filterDUR").add(new DataPoint(st, et));
             return null;
+        }
+        if (!isValidRollPitch){
+            datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_GYRO_INTERSECTIONS + wrist + ".filterROLLPITCH").add(new DataPoint(st, et));
+            return null;
+        }
+
+        if (meanHeight<PUFFMARKER.MINIMUM_GYRO_MEAN_HEIGHT_DIFFERENCE) {
+            datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_GYRO_INTERSECTIONS + wrist + ".filterGYROHEIGHT").add(new DataPoint(st, et));
+            return null;
+        }
+
         DataPointStream gyr_intersections_timestamp = datastreams.getDataPointStream("org.md2k.puffmarker.data.gyr.interval.timestamp" + wrist); // TODO: remove
         gyr_intersections_timestamp.add(new DataPoint(gyr_mag_stream.data.get(startIndex).timestamp, gyr_mag_stream.data.get(endIndex).timestamp)); //TODO: remove
 
