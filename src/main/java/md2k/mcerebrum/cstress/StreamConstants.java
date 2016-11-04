@@ -132,6 +132,7 @@ public class StreamConstants {
     public static final String ORG_MD2K_PUFFMARKER_PUFFLABEL_MINUTE = "org.md2k.puffMarker.pufflabel.minute";
     public static final String ORG_MD2K_PUFFMARKER_PUFF_COUNT_PER_MINUTE = "org.md2k.puffMarker.puffcount.perminute";
     public static final String ORG_MD2K_PUFFMARKER_SMOKING_EPISODE = "org.md2k.puffMarker.smoking.episode";
+    public static final String ORG_MD2K_PUFFMARKER_SMOKING_LAPSE_EPISODE = "org.md2k.puffMarker.smoking.lapse";
     public static final String ORG_MD2K_PUFFMARKER_RESPIRATION_CYCLE_COUNT = "org.md2k.puffMarker.respiration.cycle.count";
 
     public static final String ORG_MD2K_PUFFMARKER_DATA_RIP = "org.md2k.puffmarker.data.rip";

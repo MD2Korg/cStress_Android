@@ -54,6 +54,7 @@ public class PuffMarker {
     public PuffMarker(DataStreams datastreams) {
         try {
 
+//            String[] wristList = new String[]{PUFFMARKER.RIGHT_WRIST};
             String[] wristList = new String[]{PUFFMARKER.LEFT_WRIST, PUFFMARKER.RIGHT_WRIST};
 
             long startTime = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_RIP).data.get(0).timestamp-80*1000;
@@ -76,6 +77,7 @@ public class PuffMarker {
 
                     long st = gyr_mag_stream.data.get(startIndex).timestamp;
                     long et = gyr_mag_stream.data.get(endIndex).timestamp;
+                    if (st >= et) continue;
 //                    if (st<startTime || st > endTime) continue;
                     candidate_intersections_all.add(new DataPoint(st, et));
 
@@ -199,7 +201,9 @@ public class PuffMarker {
         DescriptiveStatistics rollstats = getDescriptiveStatisticsSubList(datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_WRIST_ROLL + wrist), startTimestamp, endTimestamp);
         DescriptiveStatistics pitchstats = getDescriptiveStatisticsSubList(datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_WRIST_PITCH + wrist), startTimestamp, endTimestamp);
 
-        if (mag8000stats.getN() == 0) return null;
+        if (mag8000stats.getN() == 0){
+            System.out.println("<><><><>><><<><><><><>><><<<><><><>");
+            return null;}
 
         /*
         Three filtering criteria

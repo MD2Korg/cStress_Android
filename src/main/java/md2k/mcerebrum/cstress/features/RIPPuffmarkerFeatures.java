@@ -106,7 +106,7 @@ public class RIPPuffmarkerFeatures {
         DataPointStream peaksFiltered = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_PEAKS_FILTERED);
         filterPeaksAndValleys(peaksFiltered, valleysFiltered, respirationDuration, inspirationAmplitude, peaks, valleys, meanInspirationAmplitude);
 
-        datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_RESPIRATION_CYCLE_COUNT).add(new DataPoint(rip.data.get(0).timestamp, valleys.data.size()));
+        datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_RESPIRATION_CYCLE_COUNT).add(new DataPoint(rip.data.get(0).timestamp, valleysFiltered.data.size()));
 
         //Key features
         DataPointStream inspDurationDataStream = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_INSPDURATION);
@@ -121,23 +121,23 @@ public class RIPPuffmarkerFeatures {
         DataPointStream stretchDataStream = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_STRETCH);
         stretchDataStream.setHistoricalBufferSize(BUFFER_SIZE);
 
-        for (int i = 0; i < valleys.data.size() - 1; i++) {
+        for (int i = 0; i < valleysFiltered.data.size() - 1; i++) {
 
-            DataPoint inspDuration = new DataPoint(valleys.data.get(i).timestamp, peaks.data.get(i).timestamp - valleys.data.get(i).timestamp);
+            DataPoint inspDuration = new DataPoint(valleysFiltered.data.get(i).timestamp, peaksFiltered.data.get(i).timestamp - valleysFiltered.data.get(i).timestamp);
             inspDurationDataStream.add(inspDuration);
 
-            DataPoint exprDuration = new DataPoint(peaks.data.get(i).timestamp, valleys.data.get(i + 1).timestamp - peaks.data.get(i).timestamp);
+            DataPoint exprDuration = new DataPoint(peaksFiltered.data.get(i).timestamp, valleysFiltered.data.get(i + 1).timestamp - peaksFiltered.data.get(i).timestamp);
             exprDurationDataStream.add(exprDuration);
 
-            DataPoint respDuration = new DataPoint(valleys.data.get(i).timestamp, valleys.data.get(i + 1).timestamp - valleys.data.get(i).timestamp);
+            DataPoint respDuration = new DataPoint(valleysFiltered.data.get(i).timestamp, valleysFiltered.data.get(i + 1).timestamp - valleysFiltered.data.get(i).timestamp);
             respDurationDataStream.add(respDuration);
 
-            DataPoint stretch = new DataPoint(valleys.data.get(i).timestamp, peaks.data.get(i).value - valleys.data.get(i).value);
+            DataPoint stretch = new DataPoint(valleysFiltered.data.get(i).timestamp, peaksFiltered.data.get(i).value - valleysFiltered.data.get(i).value);
             stretchDataStream.add(stretch);
 
-            (datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_IERATIO)).add(new DataPoint(valleys.data.get(i).timestamp, inspDuration.value / exprDuration.value));
+            (datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_IERATIO)).add(new DataPoint(valleysFiltered.data.get(i).timestamp, inspDuration.value / exprDuration.value));
         }
-        for (int i = 0; i < valleys.data.size() - 2; i++) {
+        for (int i = 0; i < valleysFiltered.data.size() - 2; i++) {
             DataPoint inspDuration = inspDurationDataStream.data.get(i);
             double nextInspDurationValue = inspDurationDataStream.data.get(i + 1).value;
             double preInspDurationValue = getPreviousValue(inspDurationDataStream, i, -1, 0);

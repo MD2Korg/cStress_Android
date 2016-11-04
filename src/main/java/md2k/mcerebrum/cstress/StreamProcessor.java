@@ -213,7 +213,7 @@ public class StreamProcessor {
      */
     public void generateResults() {
         try {
-            CStressFeatureVector cs = new CStressFeatureVector(datastreams);
+//            CStressFeatureVector cs = new CStressFeatureVector(datastreams);
         } catch (NotANumberException e) {
             System.out.println("Generate result error");
         }
@@ -231,8 +231,8 @@ public class StreamProcessor {
     public void go() {
         process();
         generateResults();
-        runcStress();
-        runcStressEpisode();
+//        runcStress();
+//        runcStressEpisode();
 
         runpuffMarker();
         runSmokingEpisode();
