@@ -39,26 +39,18 @@ public class DataStreams implements Serializable {
     private TreeMap<String, DataStream> datastreams;
     private transient TreeMap<String, DataPointInterface> callbackRegistration;
 
-    private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
-        in.defaultReadObject();
-
-        //Initialize transients
-        callbackRegistration = new TreeMap<String, DataPointInterface>();
-    }
-
-
-    private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
-        in.defaultReadObject();
-
-        //Initialize transients
-        callbackRegistration = new TreeMap<String, DataPointInterface>();
-    }
-
     /**
      * Constructor
      */
     public DataStreams() {
         datastreams = new TreeMap<String, DataStream>();
+        callbackRegistration = new TreeMap<String, DataPointInterface>();
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
+        in.defaultReadObject();
+
+        //Initialize transients
         callbackRegistration = new TreeMap<String, DataPointInterface>();
     }
 
