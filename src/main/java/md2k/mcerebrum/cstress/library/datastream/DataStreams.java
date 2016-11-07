@@ -1,5 +1,6 @@
 package md2k.mcerebrum.cstress.library.datastream;
 
+import java.io.IOException;
 import java.io.Serializable;
 import java.util.TreeMap;
 
@@ -38,6 +39,21 @@ public class DataStreams implements Serializable {
     private TreeMap<String, DataStream> datastreams;
     private transient TreeMap<String, DataPointInterface> callbackRegistration;
 
+    private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
+        in.defaultReadObject();
+
+        //Initialize transients
+        callbackRegistration = new TreeMap<String, DataPointInterface>();
+    }
+
+
+    private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
+        in.defaultReadObject();
+
+        //Initialize transients
+        callbackRegistration = new TreeMap<String, DataPointInterface>();
+    }
+
     /**
      * Constructor
      */
@@ -45,7 +61,6 @@ public class DataStreams implements Serializable {
         datastreams = new TreeMap<String, DataStream>();
         callbackRegistration = new TreeMap<String, DataPointInterface>();
     }
-
 
     /**
      * Retrieve a DataPointStream from the DataStreams object

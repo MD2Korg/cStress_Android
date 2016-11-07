@@ -6,10 +6,7 @@ import md2k.mcerebrum.cstress.library.SummaryStatistics;
 import md2k.mcerebrum.cstress.library.structs.DataPoint;
 import org.apache.commons.collections4.queue.CircularFifoQueue;
 
-import java.io.BufferedWriter;
-import java.io.FileOutputStream;
-import java.io.OutputStreamWriter;
-import java.io.Writer;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -81,7 +78,6 @@ public class DataPointStream extends DataStream {
         history = new CircularFifoQueue<DataPoint>(historySize);
     }
 
-
     public DataPointStream(String name, List<DataPoint> dataPoints) {
         this(name);
         for (DataPoint dp : dataPoints) {
@@ -102,6 +98,13 @@ public class DataPointStream extends DataStream {
         this.stats = other.stats;
         this.descriptiveStats = other.descriptiveStats;
         this.preserve = other.preserve;
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
+        in.defaultReadObject();
+
+        //Initialize transients
+        metadata = new HashMap<String, Object>();
     }
 
     public void setHistoricalBufferSize(int historySize) {

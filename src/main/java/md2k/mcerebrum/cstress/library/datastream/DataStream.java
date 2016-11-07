@@ -33,7 +33,7 @@ import java.util.HashMap;
 
 public abstract class DataStream implements DataStreamInterface, Serializable {
 
-    public transient HashMap<String, Object> metadata; //TODO: Is this needed?
+    public transient HashMap<String, Object> metadata;
     public boolean preserve;
     public transient DataPointInterface dataPointInterface; //Needed
 
