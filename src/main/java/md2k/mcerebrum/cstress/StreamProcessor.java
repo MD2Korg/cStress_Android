@@ -44,9 +44,7 @@ import md2k.mcerebrum.cstress.library.structs.SVCModel;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.math3.exception.NotANumberException;
 
-import java.io.File;
-import java.io.FilenameFilter;
-import java.io.IOException;
+import java.io.*;
 import java.util.TreeMap;
 
 /**
@@ -418,6 +416,52 @@ public class StreamProcessor {
         datastreams.reset();
     }
 
+
+    /**
+     * Export internal datastream state for purposes of resetting the applications and loading state back
+     *
+     * @param file File in which to store state
+     */
+    public boolean exportDatastreams(String filename) {
+        boolean result = false;
+        try {
+            FileOutputStream fos = new FileOutputStream(filename);
+            ObjectOutputStream oos = new ObjectOutputStream(fos);
+
+            oos.writeObject(datastreams);
+
+            oos.close();
+            fos.close();
+
+            result = true;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return result;
+    }
+
+    /**
+     * Load internal datastream state for purposes of resetting the applications
+     *
+     * @param file File in which to load state from
+     */
+    public boolean importDatastreams(String filename) {
+        boolean result = false;
+
+        try {
+            FileInputStream fis = new FileInputStream(filename);
+            ObjectInputStream ois = new ObjectInputStream(fis);
+
+            datastreams = (DataStreams) ois.readObject();
+
+            ois.close();
+            fis.close();
+            result = true;
+        } catch (Exception e) {
+
+        }
+        return result;
+    }
 
     /**
      * Handle registration of a callback interface

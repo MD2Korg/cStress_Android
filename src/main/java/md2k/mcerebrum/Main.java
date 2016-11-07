@@ -40,7 +40,7 @@ public class Main {
 
         String path = args[0];
 
-        ExecutorService executor = Executors.newFixedThreadPool(4);
+        ExecutorService executor = Executors.newFixedThreadPool(1);
 
         for (int i = 1; i < 23; i++) {
             String person = "SI" + String.format("%02d", i);

@@ -1,5 +1,6 @@
 package md2k.mcerebrum.cstress.library.structs;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -33,7 +34,7 @@ import java.util.List;
 /**
  * Array version of DataPoint
  */
-public class DataPointArray {
+public class DataPointArray implements Serializable {
     public List<Double> value;
     public long timestamp;
 

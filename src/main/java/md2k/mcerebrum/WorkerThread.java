@@ -84,6 +84,7 @@ public class WorkerThread implements Runnable {
         int windowSize = 60000;
 
         StreamProcessor streamProcessor = new StreamProcessor(windowSize);
+//        streamProcessor.importDatastreams(path + "/streamProcessor.serialized");
         streamProcessor.setPath(path);
         streamProcessor.loadModel("cStressModel", cStressModelPath);
         streamProcessor.loadModel("cStressRIPModel", cStressRIPModelPath);
@@ -120,6 +121,7 @@ public class WorkerThread implements Runnable {
             if ((dp.timestamp - windowStartTime) >= windowSize) { //Process the buffer every windowSize milliseconds
                 streamProcessor.go();
                 windowStartTime += windowSize;
+//                streamProcessor.exportDatastreams(path + "/streamProcessor.serialized");
             }
 
             streamProcessor.add(ap.channel, dp);

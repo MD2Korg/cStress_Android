@@ -27,9 +27,10 @@ package md2k.mcerebrum.cstress.library;
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+import java.io.Serializable;
 import java.util.TreeMap;
 
-public class DescriptiveStatistics {
+public class DescriptiveStatistics implements Serializable {
 
     private TreeMap<Integer, PSquared> pp = new TreeMap<Integer, PSquared>();
 
