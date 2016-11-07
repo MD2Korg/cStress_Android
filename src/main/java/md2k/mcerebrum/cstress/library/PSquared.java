@@ -27,12 +27,13 @@ THE SOFTWARE.
  */
 
 
+import java.io.Serializable;
 import java.util.Arrays;
 
 /**
  * Reference https://github.com/jacksonicson/psquared
  */
-public class PSquared {
+public class PSquared implements Serializable {
 
     final int MARKERS = 5;
 

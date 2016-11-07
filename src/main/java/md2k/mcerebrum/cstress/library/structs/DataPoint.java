@@ -27,10 +27,12 @@ package md2k.mcerebrum.cstress.library.structs;
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+import java.io.Serializable;
+
 /**
  * Data Point class that most computations are based on
  */
-public class DataPoint {
+public class DataPoint implements Serializable {
     public double value;
     public long timestamp;
 

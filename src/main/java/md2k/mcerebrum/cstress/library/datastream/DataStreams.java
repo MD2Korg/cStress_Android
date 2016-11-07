@@ -1,5 +1,6 @@
 package md2k.mcerebrum.cstress.library.datastream;
 
+import java.io.Serializable;
 import java.util.TreeMap;
 
 /*
@@ -32,10 +33,10 @@ import java.util.TreeMap;
 /**
  * Main object that contains all data streams in this library
  */
-public class DataStreams {
+public class DataStreams implements Serializable {
 
     private TreeMap<String, DataStream> datastreams;
-    private TreeMap<String, DataPointInterface> callbackRegistration;
+    private transient TreeMap<String, DataPointInterface> callbackRegistration;
 
     /**
      * Constructor

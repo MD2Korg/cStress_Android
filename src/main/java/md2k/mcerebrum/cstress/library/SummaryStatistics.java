@@ -26,7 +26,9 @@ package md2k.mcerebrum.cstress.library;
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-public class SummaryStatistics {
+import java.io.Serializable;
+
+public class SummaryStatistics implements Serializable {
 
     private double sum = 0;
     private double sumsq = 0;

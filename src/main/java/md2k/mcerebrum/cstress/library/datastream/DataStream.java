@@ -1,5 +1,6 @@
 package md2k.mcerebrum.cstress.library.datastream;
 
+import java.io.Serializable;
 import java.util.HashMap;
 
 /*
@@ -30,11 +31,11 @@ import java.util.HashMap;
  */
 
 
-public abstract class DataStream implements DataStreamInterface {
+public abstract class DataStream implements DataStreamInterface, Serializable {
 
-    public HashMap<String, Object> metadata;
+    public transient HashMap<String, Object> metadata; //TODO: Is this needed?
     public boolean preserve;
-    public DataPointInterface dataPointInterface;
+    public transient DataPointInterface dataPointInterface; //Needed
 
     /**
      * Retrieve stream name
