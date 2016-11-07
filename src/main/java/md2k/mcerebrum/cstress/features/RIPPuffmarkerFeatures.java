@@ -36,6 +36,7 @@ import md2k.mcerebrum.cstress.library.datastream.DataPointStream;
 import md2k.mcerebrum.cstress.library.datastream.DataStreams;
 import md2k.mcerebrum.cstress.library.signalprocessing.Smoothing;
 import md2k.mcerebrum.cstress.library.structs.DataPoint;
+import md2k.mcerebrum.cstress.library.structs.MetadataDouble;
 import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 
 import java.util.ArrayList;
@@ -60,7 +61,7 @@ public class RIPPuffmarkerFeatures {
 
         DataPointStream rip = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_RIP);
         DataPointStream rip2min = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP);
-        int wLen = (int) Math.round(PUFFMARKER.BUFFER_SIZE_2MIN_SEC* (Double) datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_RIP).metadata.get("frequency"));
+        int wLen = (int) Math.round(PUFFMARKER.BUFFER_SIZE_2MIN_SEC * ((MetadataDouble) datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_RIP).metadata.get("frequency")).value);
         rip2min.setHistoricalBufferSize(wLen);
         long timestamp2minbefore = rip.data.get(0).timestamp - PUFFMARKER.BUFFER_SIZE_2MIN_SEC * 1000;
         List<DataPoint> listHistoryRIP = new ArrayList<>(rip2min.getHistoricalValues(timestamp2minbefore));
@@ -70,7 +71,7 @@ public class RIPPuffmarkerFeatures {
         DataPointStream rip_smooth = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_SMOOTH);
         Smoothing.smooth(rip_smooth, rip2min, AUTOSENSE.PEAK_VALLEY_SMOOTHING_SIZE);
 
-        int windowLength = (int) Math.round(AUTOSENSE.WINDOW_LENGTH_SECS * (Double) datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_RIP).metadata.get("frequency"));
+        int windowLength = (int) Math.round(AUTOSENSE.WINDOW_LENGTH_SECS * ((MetadataDouble) datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_RIP).metadata.get("frequency")).value);
         DataPointStream rip_mac = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_MAC);
         Smoothing.smooth(rip_mac, rip_smooth, windowLength); //TWH: Replaced MAC with Smooth after discussion on 11/9/2015
 

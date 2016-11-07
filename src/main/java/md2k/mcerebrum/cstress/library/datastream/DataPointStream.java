@@ -4,9 +4,14 @@ package md2k.mcerebrum.cstress.library.datastream;
 import md2k.mcerebrum.cstress.library.DescriptiveStatistics;
 import md2k.mcerebrum.cstress.library.SummaryStatistics;
 import md2k.mcerebrum.cstress.library.structs.DataPoint;
+import md2k.mcerebrum.cstress.library.structs.MetadataString;
+import md2k.mcerebrum.cstress.library.structs.MetadataType;
 import org.apache.commons.collections4.queue.CircularFifoQueue;
 
-import java.io.*;
+import java.io.BufferedWriter;
+import java.io.FileOutputStream;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -60,8 +65,8 @@ public class DataPointStream extends DataStream {
     public DataPointStream(String name) {
         data = new ArrayList<DataPoint>();
         history = new CircularFifoQueue<DataPoint>(1);
-        metadata = new HashMap<String, Object>();
-        metadata.put("name", name);
+        metadata = new HashMap<String, MetadataType>();
+        metadata.put("name", new MetadataString(name));
         preserve = false;
         stats = new SummaryStatistics();
         descriptiveStats = new DescriptiveStatistics();
@@ -98,13 +103,6 @@ public class DataPointStream extends DataStream {
         this.stats = other.stats;
         this.descriptiveStats = other.descriptiveStats;
         this.preserve = other.preserve;
-    }
-
-    private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
-        in.defaultReadObject();
-
-        //Initialize transients
-        metadata = new HashMap<String, Object>();
     }
 
     public void setHistoricalBufferSize(int historySize) {
@@ -218,7 +216,7 @@ public class DataPointStream extends DataStream {
             descriptiveStats.addValue(dp.value);
 
             if (dataPointInterface != null) {
-                dataPointInterface.dataPointHandler((String) metadata.get("name"), new DataPoint(dp));
+                dataPointInterface.dataPointHandler(((MetadataString) metadata.get("name")).value, new DataPoint(dp));
             }
         }
     }

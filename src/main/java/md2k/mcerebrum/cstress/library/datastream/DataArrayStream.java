@@ -2,6 +2,8 @@ package md2k.mcerebrum.cstress.library.datastream;
 
 
 import md2k.mcerebrum.cstress.library.structs.DataPointArray;
+import md2k.mcerebrum.cstress.library.structs.MetadataString;
+import md2k.mcerebrum.cstress.library.structs.MetadataType;
 import org.apache.commons.collections4.queue.CircularFifoQueue;
 
 import java.io.*;
@@ -53,8 +55,8 @@ public class DataArrayStream extends DataStream {
     public DataArrayStream(String name) {
         data = new ArrayList<DataPointArray>();
         history = new CircularFifoQueue<DataPointArray>(1);
-        metadata = new HashMap<String, Object>();
-        metadata.put("name", name);
+        metadata = new HashMap<String, MetadataType>();
+        metadata.put("name", new MetadataString(name));
         preserve = false;
     }
 
@@ -84,7 +86,7 @@ public class DataArrayStream extends DataStream {
         in.defaultReadObject();
 
         //Initialize transients
-        metadata = new HashMap<String, Object>();
+        metadata = new HashMap<String, MetadataType>();
     }
 
     public void setHistoricalBufferSize(int historySize) {
@@ -199,7 +201,7 @@ public class DataArrayStream extends DataStream {
         history.add(new DataPointArray(dp));
 
         if (dataPointInterface != null) {
-            dataPointInterface.dataPointArrayHandler((String) metadata.get("name"), dp);
+            dataPointInterface.dataPointArrayHandler(((MetadataString) metadata.get("name")).value, dp);
         }
     }
 
@@ -209,7 +211,7 @@ public class DataArrayStream extends DataStream {
      * @return The unique stream name
      */
     public String getName() {
-        return (String) metadata.get("name");
+        return ((MetadataString) metadata.get("name")).value;
     }
 
 }

@@ -37,10 +37,7 @@ import md2k.mcerebrum.cstress.features.*;
 import md2k.mcerebrum.cstress.library.datastream.DataArrayStream;
 import md2k.mcerebrum.cstress.library.datastream.DataPointInterface;
 import md2k.mcerebrum.cstress.library.datastream.DataStreams;
-import md2k.mcerebrum.cstress.library.structs.DataPoint;
-import md2k.mcerebrum.cstress.library.structs.DataPointArray;
-import md2k.mcerebrum.cstress.library.structs.Model;
-import md2k.mcerebrum.cstress.library.structs.SVCModel;
+import md2k.mcerebrum.cstress.library.structs.*;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.math3.exception.NotANumberException;
 
@@ -89,23 +86,23 @@ public class StreamProcessor {
 
     private void configureDataStreams() {
         //Configure Data Streams
-        datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_ECG).metadata.put("frequency", 64.0);
-        datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_ECG).metadata.put("channelID", AUTOSENSE.CHEST_ECG);
+        datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_ECG).metadata.put("frequency", new MetadataDouble(64.0));
+        datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_ECG).metadata.put("channelID", new MetadataInteger(AUTOSENSE.CHEST_ECG));
 
-        datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_RIP).metadata.put("frequency", 64.0 / 3.0);
-        datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_RIP).metadata.put("channelID", AUTOSENSE.CHEST_RIP);
+        datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_RIP).metadata.put("frequency", new MetadataDouble(64.0 / 3.0));
+        datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_RIP).metadata.put("channelID", new MetadataInteger(AUTOSENSE.CHEST_RIP));
 
-        datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_ACCELX).metadata.put("frequency", 64.0 / 6.0);
-        datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_ACCELX).metadata.put("channelID", AUTOSENSE.CHEST_ACCEL_X);
+        datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_ACCELX).metadata.put("frequency", new MetadataDouble(64.0 / 6.0));
+        datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_ACCELX).metadata.put("channelID", new MetadataInteger(AUTOSENSE.CHEST_ACCEL_X));
 
-        datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_ACCELY).metadata.put("frequency", 64.0 / 6.0);
-        datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_ACCELY).metadata.put("channelID", AUTOSENSE.CHEST_ACCEL_X);
+        datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_ACCELY).metadata.put("frequency", new MetadataDouble(64.0 / 6.0));
+        datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_ACCELY).metadata.put("channelID", new MetadataInteger(AUTOSENSE.CHEST_ACCEL_X));
 
-        datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_ACCELZ).metadata.put("frequency", 64.0 / 6.0);
-        datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_ACCELZ).metadata.put("channelID", AUTOSENSE.CHEST_ACCEL_X);
+        datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_ACCELZ).metadata.put("frequency", new MetadataDouble(64.0 / 6.0));
+        datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_ACCELZ).metadata.put("channelID", new MetadataInteger(AUTOSENSE.CHEST_ACCEL_X));
 
-        datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_PROBABILITY).metadata.put("frequency", 1000.0 / windowSize);
-        datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_STRESSLABEL).metadata.put("frequency", 1000.0 / windowSize);
+        datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_PROBABILITY).metadata.put("frequency", new MetadataDouble(1000.0 / windowSize));
+        datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_STRESSLABEL).metadata.put("frequency", new MetadataDouble(1000.0 / windowSize));
 
         configurePuffMarkerWristDataStreams(PUFFMARKER.LEFT_WRIST, 16.0, 32.0);
         configurePuffMarkerWristDataStreams(PUFFMARKER.RIGHT_WRIST, 16.0, 32.0);
@@ -117,13 +114,13 @@ public class StreamProcessor {
     }
 
     private void configurePuffMarkerWristDataStreams(String wrist, double freqAccel, double freqGyro) {
-        datastreams.getDataPointStream(PUFFMARKER.ORG_MD2K_PUFF_MARKER_DATA_ACCEL_X + wrist).metadata.put("frequency", freqAccel);
-        datastreams.getDataPointStream(PUFFMARKER.ORG_MD2K_PUFF_MARKER_DATA_ACCEL_Y + wrist).metadata.put("frequency", freqAccel);
-        datastreams.getDataPointStream(PUFFMARKER.ORG_MD2K_PUFF_MARKER_DATA_ACCEL_Z + wrist).metadata.put("frequency", freqAccel);
+        datastreams.getDataPointStream(PUFFMARKER.ORG_MD2K_PUFF_MARKER_DATA_ACCEL_X + wrist).metadata.put("frequency", new MetadataDouble(freqAccel));
+        datastreams.getDataPointStream(PUFFMARKER.ORG_MD2K_PUFF_MARKER_DATA_ACCEL_Y + wrist).metadata.put("frequency", new MetadataDouble(freqAccel));
+        datastreams.getDataPointStream(PUFFMARKER.ORG_MD2K_PUFF_MARKER_DATA_ACCEL_Z + wrist).metadata.put("frequency", new MetadataDouble(freqAccel));
 
-        datastreams.getDataPointStream(PUFFMARKER.ORG_MD2K_PUFF_MARKER_DATA_GYRO_X + wrist).metadata.put("frequency", freqGyro);
-        datastreams.getDataPointStream(PUFFMARKER.ORG_MD2K_PUFF_MARKER_DATA_GYRO_Y + wrist).metadata.put("frequency", freqGyro);
-        datastreams.getDataPointStream(PUFFMARKER.ORG_MD2K_PUFF_MARKER_DATA_GYRO_Z + wrist).metadata.put("frequency", freqGyro);
+        datastreams.getDataPointStream(PUFFMARKER.ORG_MD2K_PUFF_MARKER_DATA_GYRO_X + wrist).metadata.put("frequency", new MetadataDouble(freqGyro));
+        datastreams.getDataPointStream(PUFFMARKER.ORG_MD2K_PUFF_MARKER_DATA_GYRO_Y + wrist).metadata.put("frequency", new MetadataDouble(freqGyro));
+        datastreams.getDataPointStream(PUFFMARKER.ORG_MD2K_PUFF_MARKER_DATA_GYRO_Z + wrist).metadata.put("frequency", new MetadataDouble(freqGyro));
 
     }
 

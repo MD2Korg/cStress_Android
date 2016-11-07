@@ -10,6 +10,7 @@ import md2k.mcerebrum.cstress.library.signalprocessing.Filter;
 import md2k.mcerebrum.cstress.library.signalprocessing.Smoothing;
 import md2k.mcerebrum.cstress.library.structs.DataPoint;
 import md2k.mcerebrum.cstress.library.structs.Lomb;
+import md2k.mcerebrum.cstress.library.structs.MetadataDouble;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -58,7 +59,7 @@ public class ECGFeatures {
 
         //Compute RR Intervals
         DataPointStream ECGstream = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_ECG);
-        double frequency = (Double) ECGstream.metadata.get("frequency");
+        double frequency = ((MetadataDouble) ECGstream.metadata.get("frequency")).value;
 
         //Ohio State Algorithm
         int window_l = (int) Math.ceil(frequency / 5.0);
