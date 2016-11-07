@@ -117,16 +117,16 @@ public class ECGFeatures {
         validRRinterval(rr_outlier, validfilter_rr_interval, rr_value_diff, rr_value);
 
         DataPointStream rr_value_filtered = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_ECG_RR_VALUE_FILTERED);
-        rpeakFilter(rr_value, rr_value_filtered, rr_outlier);
+        rpeakFilter(validfilter_rr_interval, rr_value_filtered, rr_outlier);
 
         double activity = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_ACCEL_ACTIVITY).data.get(0).value;
         //Decide if we should add the RR intervals from this minute to the running stats
         if (activity == 0.0) {
 
-            for (int i = 0; i < (datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_ECG_RR_VALUE)).data.size(); i++) {
+            for (int i = 0; i < (datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_ECG_RR_VALUE_FILTERED)).data.size(); i++) {
                 if (datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_ECG_OUTLIER).data.get(i).value == AUTOSENSE.QUALITY_GOOD) {
-                    datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_ECG_RR).add((datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_ECG_RR_VALUE)).data.get(i));
-                    DataPoint hr = new DataPoint((datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_ECG_RR_VALUE)).data.get(i).timestamp, 60.0 / (datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_ECG_RR_VALUE)).data.get(i).value);
+                    datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_ECG_RR).add((datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_ECG_RR_VALUE_FILTERED)).data.get(i));
+                    DataPoint hr = new DataPoint((datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_ECG_RR_VALUE_FILTERED)).data.get(i).timestamp, 60.0 / (datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_ECG_RR_VALUE_FILTERED)).data.get(i).value);
                     datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_ECG_RR_HEARTRATE).add(hr);
                 }
             }
