@@ -6,7 +6,10 @@ import md2k.mcerebrum.cstress.library.structs.MetadataString;
 import md2k.mcerebrum.cstress.library.structs.MetadataType;
 import org.apache.commons.collections4.queue.CircularFifoQueue;
 
-import java.io.*;
+import java.io.BufferedWriter;
+import java.io.FileOutputStream;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -80,13 +83,6 @@ public class DataArrayStream extends DataStream {
         this.history = new CircularFifoQueue<DataPointArray>(other.history);
         this.metadata = other.metadata;
         this.preserve = other.preserve;
-    }
-
-    private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
-        in.defaultReadObject();
-
-        //Initialize transients
-        metadata = new HashMap<String, MetadataType>();
     }
 
     public void setHistoricalBufferSize(int historySize) {
