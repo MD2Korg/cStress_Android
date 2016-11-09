@@ -31,18 +31,41 @@ package md2k.mcerebrum.cstress;
  */
 
 import com.google.gson.Gson;
-import md2k.mcerebrum.cstress.autosense.AUTOSENSE;
-import md2k.mcerebrum.cstress.autosense.PUFFMARKER;
-import md2k.mcerebrum.cstress.features.*;
-import md2k.mcerebrum.cstress.library.datastream.DataArrayStream;
-import md2k.mcerebrum.cstress.library.datastream.DataPointInterface;
-import md2k.mcerebrum.cstress.library.datastream.DataStreams;
-import md2k.mcerebrum.cstress.library.structs.*;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.math3.exception.NotANumberException;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.FilenameFilter;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.TreeMap;
+
+import md2k.mcerebrum.cstress.autosense.AUTOSENSE;
+import md2k.mcerebrum.cstress.autosense.PUFFMARKER;
+import md2k.mcerebrum.cstress.features.AccelerometerFeatures;
+import md2k.mcerebrum.cstress.features.AutosenseWristFeatures;
+import md2k.mcerebrum.cstress.features.CStressFeatureVector;
+import md2k.mcerebrum.cstress.features.ECGDataQuality;
+import md2k.mcerebrum.cstress.features.ECGFeatures;
+import md2k.mcerebrum.cstress.features.PuffMarker;
+import md2k.mcerebrum.cstress.features.RIPDataQuality;
+import md2k.mcerebrum.cstress.features.RIPFeatures;
+import md2k.mcerebrum.cstress.features.RIPPuffmarkerFeatures;
+import md2k.mcerebrum.cstress.features.SmokingEpisodeGeneration;
+import md2k.mcerebrum.cstress.features.StressEpisodeClassification;
+import md2k.mcerebrum.cstress.library.datastream.DataArrayStream;
+import md2k.mcerebrum.cstress.library.datastream.DataPointInterface;
+import md2k.mcerebrum.cstress.library.datastream.DataStreams;
+import md2k.mcerebrum.cstress.library.structs.DataPoint;
+import md2k.mcerebrum.cstress.library.structs.DataPointArray;
+import md2k.mcerebrum.cstress.library.structs.MetadataDouble;
+import md2k.mcerebrum.cstress.library.structs.MetadataInteger;
+import md2k.mcerebrum.cstress.library.structs.Model;
+import md2k.mcerebrum.cstress.library.structs.SVCModel;
 
 /**
  * Main class that implements StreamProcessor and controls the data processing pipeline
@@ -65,6 +88,21 @@ public class StreamProcessor {
         this.windowSize = windowSize;
 
         configureDataStreams();
+    }
+
+
+    /**
+     * load and create a model object from a model file
+     *
+     * @param modelString JSON formatted string
+     */
+    public void loadModelFromString(String name, String modelString) {
+        Gson gson = new Gson();
+
+        Model genericModel = gson.fromJson(modelString, Model.class);
+        if (genericModel.getModelType().equals("svc"))
+            models.put(name, gson.fromJson(modelString, SVCModel.class));
+        //gson parse a JSON model file and create a SVMModel object, and add it to models
     }
 
     /**
