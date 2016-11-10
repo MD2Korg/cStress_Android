@@ -92,7 +92,9 @@ public class AutosenseWristFeatures {
         DataPointStream accelx2min = datastreams.getDataPointStream(PUFFMARKER.ORG_MD2K_PUFF_MARKER_DATA_ACCEL_X_2_MIN + wrist);
         DataPointStream accely2min = datastreams.getDataPointStream(PUFFMARKER.ORG_MD2K_PUFF_MARKER_DATA_ACCEL_Y_2_MIN + wrist);
         DataPointStream accelz2min = datastreams.getDataPointStream(PUFFMARKER.ORG_MD2K_PUFF_MARKER_DATA_ACCEL_Z_2_MIN + wrist);
-        wLen = (int) Math.round(PUFFMARKER.BUFFER_SIZE_3MIN_SEC * (Double) datastreams.getDataPointStream(PUFFMARKER.ORG_MD2K_PUFF_MARKER_DATA_ACCEL_X+wrist).metadata.get("frequency"));
+
+        wLen = (int) Math.round(PUFFMARKER.BUFFER_SIZE_3MIN_SEC * ((MetadataDouble) datastreams.getDataPointStream(PUFFMARKER.ORG_MD2K_PUFF_MARKER_DATA_ACCEL_X + wrist).metadata.get("frequency")).value);
+
         accelx2min.setHistoricalBufferSize(wLen);
         accely2min.setHistoricalBufferSize(wLen);
         accelz2min.setHistoricalBufferSize(wLen);
