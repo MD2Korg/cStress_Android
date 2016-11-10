@@ -216,7 +216,7 @@ public class PuffMarker {
                 double overlap_seg_length = Math.min(endTimestamp, acl_seg_end_timestamp) - Math.max(startTimestamp, acl_seg_start_timestamp);
                 double accl_seq_len = acl_seg_end_timestamp - acl_seg_start_timestamp;
                 double gyro_seq_len =endTimestamp-startTimestamp;
-                if((gyro_seq_len)*overlapPercentage <= overlap_seg_length && (accl_seq_len)*0.40<= overlap_seg_length) {
+                if((gyro_seq_len)*overlapPercentage <= overlap_seg_length && (accl_seq_len)*overlapPercentage<= overlap_seg_length) {
                     isHandUpDirection = true;
                 }
             }
