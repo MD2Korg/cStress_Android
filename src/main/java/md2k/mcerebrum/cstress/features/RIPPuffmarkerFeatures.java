@@ -107,7 +107,7 @@ public class RIPPuffmarkerFeatures {
         DataPointStream peaksFiltered = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_PEAKS_FILTERED);
         filterPeaksAndValleys(peaksFiltered, valleysFiltered, respirationDuration, inspirationAmplitude, peaks, valleys, meanInspirationAmplitude);
 
-        datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_RESPIRATION_CYCLE_COUNT).add(new DataPoint(rip.data.get(0).timestamp, valleys.data.size()));
+        datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_RESPIRATION_CYCLE_COUNT).add(new DataPoint(rip.data.get(0).timestamp, valleysFiltered.data.size()));
 
         //Key features
         DataPointStream inspDurationDataStream = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_INSPDURATION);
@@ -122,23 +122,27 @@ public class RIPPuffmarkerFeatures {
         DataPointStream stretchDataStream = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_STRETCH);
         stretchDataStream.setHistoricalBufferSize(BUFFER_SIZE);
 
-        for (int i = 0; i < valleys.data.size() - 1; i++) {
+        if (valleysFiltered.data.get(0).timestamp > peaksFiltered.data.get(0).timestamp) {
+            System.out.println("PEAK_LESS_VALLEY");
+        }
 
-            DataPoint inspDuration = new DataPoint(valleys.data.get(i).timestamp, peaks.data.get(i).timestamp - valleys.data.get(i).timestamp);
+        for (int i = 0; i < valleysFiltered.data.size() - 1; i++) {
+
+            DataPoint inspDuration = new DataPoint(valleysFiltered.data.get(i).timestamp, peaksFiltered.data.get(i).timestamp - valleysFiltered.data.get(i).timestamp);
             inspDurationDataStream.add(inspDuration);
 
-            DataPoint exprDuration = new DataPoint(peaks.data.get(i).timestamp, valleys.data.get(i + 1).timestamp - peaks.data.get(i).timestamp);
+            DataPoint exprDuration = new DataPoint(peaksFiltered.data.get(i).timestamp, valleysFiltered.data.get(i + 1).timestamp - peaksFiltered.data.get(i).timestamp);
             exprDurationDataStream.add(exprDuration);
 
-            DataPoint respDuration = new DataPoint(valleys.data.get(i).timestamp, valleys.data.get(i + 1).timestamp - valleys.data.get(i).timestamp);
+            DataPoint respDuration = new DataPoint(valleysFiltered.data.get(i).timestamp, valleysFiltered.data.get(i + 1).timestamp - valleysFiltered.data.get(i).timestamp);
             respDurationDataStream.add(respDuration);
 
-            DataPoint stretch = new DataPoint(valleys.data.get(i).timestamp, peaks.data.get(i).value - valleys.data.get(i).value);
+            DataPoint stretch = new DataPoint(valleysFiltered.data.get(i).timestamp, peaksFiltered.data.get(i).value - valleysFiltered.data.get(i).value);
             stretchDataStream.add(stretch);
 
-            (datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_IERATIO)).add(new DataPoint(valleys.data.get(i).timestamp, inspDuration.value / exprDuration.value));
+            (datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_IERATIO)).add(new DataPoint(valleysFiltered.data.get(i).timestamp, inspDuration.value / exprDuration.value));
         }
-        for (int i = 0; i < valleys.data.size() - 2; i++) {
+        for (int i = 0; i < valleysFiltered.data.size() - 2; i++) {
             DataPoint inspDuration = inspDurationDataStream.data.get(i);
             double nextInspDurationValue = inspDurationDataStream.data.get(i + 1).value;
             double preInspDurationValue = getPreviousValue(inspDurationDataStream, i, -1, 0);
@@ -153,23 +157,23 @@ public class RIPPuffmarkerFeatures {
 
             DataPoint stretch = stretchDataStream.data.get(i);
             double nextStretchValue = stretchDataStream.data.get(i + 1).value;
-            double preStretchValue = getPreviousValue(stretchDataStream, i, 1, 0);
+            double preStretchValue = getPreviousValue(stretchDataStream, i, -1, 0);
 
             (datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_INSPDURATION_BACK_DIFFERENCE)).add(new DataPoint(inspDuration.timestamp, inspDuration.value - preInspDurationValue));
-            (datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_INSPDURATION_FORWARD_DIFFERENCE)).add(new DataPoint(inspDuration.timestamp, nextInspDurationValue- inspDuration.value));
+            (datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_INSPDURATION_FORWARD_DIFFERENCE)).add(new DataPoint(inspDuration.timestamp, inspDuration.value-nextInspDurationValue));
 
             (datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_EXPRDURATION_BACK_DIFFERENCE)).add(new DataPoint(exprDuration.timestamp, exprDuration.value - preExpDurationValue));
-            (datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_EXPRDURATION_FORWARD_DIFFERENCE)).add(new DataPoint(exprDuration.timestamp, nextExpDurationValue- exprDuration.value));
+            (datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_EXPRDURATION_FORWARD_DIFFERENCE)).add(new DataPoint(exprDuration.timestamp, exprDuration.value-nextExpDurationValue));
 
             (datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_RESPDURATION_BACK_DIFFERENCE)).add(new DataPoint(respDuration.timestamp, respDuration.value - preRespDurationValue));
-            (datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_RESPDURATION_FORWARD_DIFFERENCE)).add(new DataPoint(respDuration.timestamp, nextRespDurationValue- respDuration.value));
+            (datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_RESPDURATION_FORWARD_DIFFERENCE)).add(new DataPoint(respDuration.timestamp, respDuration.value-nextRespDurationValue));
 
             (datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_STRETCH_BACK_DIFFERENCE)).add(new DataPoint(stretch.timestamp, stretch.value - preStretchValue));
-            (datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_STRETCH_FORWARD_DIFFERENCE)).add(new DataPoint(stretch.timestamp, nextStretchValue- stretch.value));
+            (datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_STRETCH_FORWARD_DIFFERENCE)).add(new DataPoint(stretch.timestamp, stretch.value-nextStretchValue));
         }
 
         int len = Math.min(exprDurationDataStream.data.size(), stretchDataStream.data.size());
-        for (int i = 0; i < len; i++) {
+        for (int i = 0; i < valleysFiltered.data.size() - 2; i++) {
             double d5_stretch = 0;
             double d5_exp = 0;
             int cnt = 0;
@@ -183,8 +187,8 @@ public class RIPPuffmarkerFeatures {
             d5_stretch = stretchDataStream.data.get(i).value / d5_stretch;
             d5_exp /= cnt;
             d5_exp = exprDurationDataStream.data.get(i).value / d5_exp;
-            (datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_D5_STRETCH)).add(new DataPoint(stretchDataStream.data.get(i).timestamp, d5_stretch));
-            (datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_D5_EXPRDURATION)).add(new DataPoint(exprDurationDataStream.data.get(i).timestamp, d5_exp));
+            (datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_D5_STRETCH)).add(new DataPoint(valleysFiltered.data.get(i).timestamp, d5_stretch));
+            (datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_D5_EXPRDURATION)).add(new DataPoint(valleysFiltered.data.get(i).timestamp, d5_exp));
         }
 
         int currentRespirationIndex = 0;
@@ -194,6 +198,7 @@ public class RIPPuffmarkerFeatures {
         double maxRateOfChange = 0;
         double minRateOfChange = Double.MAX_VALUE;
 
+/*
         for (int i = 1; i < rip.data.size() && currentRespirationIndex < respDurationDataStream.data.size(); i++) {
             if (rip.data.get(i).timestamp > currentRespiration.timestamp) {
                 //TODO
@@ -212,6 +217,22 @@ public class RIPPuffmarkerFeatures {
             minAmplitude = Math.min(minAmplitude, rip.data.get(i).value);
             maxRateOfChange = Math.max(maxRateOfChange, rip.data.get(i).value - rip.data.get(i - 1).value);
             minRateOfChange = Math.min(minRateOfChange, rip.data.get(i).value - rip.data.get(i - 1).value);
+        }
+*/
+        for (int i=0; i<valleysFiltered.data.size()-2; i++) {
+            for (int j=0; j<rip2min.data.size()-1;j++) {
+                if (rip2min.data.get(j).timestamp == rip2min.data.get(j+1).timestamp) continue;
+                if (rip2min.data.get(j).timestamp>valleysFiltered.data.get(i).timestamp && rip2min.data.get(j).timestamp<valleysFiltered.data.get(i+1).timestamp) {
+                    maxAmplitude = Math.max(maxAmplitude, rip2min.data.get(j).value);
+                    minAmplitude = Math.min(minAmplitude, rip2min.data.get(j).value);
+                    maxRateOfChange = Math.max(maxRateOfChange, (rip2min.data.get(j+1).value - rip2min.data.get(j).value)/(rip2min.data.get(j+1).timestamp - rip2min.data.get(j).timestamp));
+                    minRateOfChange = Math.min(minRateOfChange, (rip2min.data.get(j+1).value - rip2min.data.get(j).value)/(rip2min.data.get(j+1).timestamp - rip2min.data.get(j).timestamp));
+                }
+            }
+            (datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_MAX_AMPLITUDE)).add(new DataPoint(currentRespiration.timestamp, (maxAmplitude-minAmplitude)/2));
+            (datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_MIN_AMPLITUDE)).add(new DataPoint(currentRespiration.timestamp, (minAmplitude-maxAmplitude)/2 ));
+            (datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_MAX_RATE_OF_CHANGE)).add(new DataPoint(currentRespiration.timestamp, maxRateOfChange));
+            (datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_MIN_RATE_OF_CHANGE)).add(new DataPoint(currentRespiration.timestamp, minRateOfChange));
         }
 
     }

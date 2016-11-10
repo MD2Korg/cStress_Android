@@ -17,6 +17,8 @@ public class SmokingEpisodeGeneration {
     public static int MINIMUM_TIME_DIFFERENCE_BETWEEN_EPISODES = 10 * 60 * 1000;
     public static int MINIMUM_TIME_DIFFERENCE_FIRST_AND_LAST_PUFFS = 5 * 60 * 1000;
     public static int MINIMUM_INTER_PUFF_DURATION = 5 * 1000;
+    public static int MINIMUM_PUFFS_IN_EPISODE = 4;
+    public static int MINIMUM_PUFFS_IN_LAPSE_EPISODE = 4;
 
     public SmokingEpisodeGeneration(DataStreams datastreams) {
 
@@ -49,13 +51,13 @@ public class SmokingEpisodeGeneration {
         DataPointStream smokingEpisodeDataStream = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_SMOKING_EPISODE);
         smokingEpisodeDataStream.setHistoricalBufferSize(1);
 
-        List<DataPoint> last10Puffs = getLastNHistoricalValue(puffLabelDataStream, 10);
+        List<DataPoint> last10Puffs = getLastNHistoricalValue(puffLabelDataStream, 15);
         List<DataPoint> last10PuffsRev = new ArrayList<DataPoint>();
         for (int i=last10Puffs.size()-1; i>=0; i--)
             last10PuffsRev.add(last10Puffs.get(i));
 
-        if (last10PuffsRev.size() >= 4 && Math.abs(last10PuffsRev.get(0).timestamp - last10PuffsRev.get(3).timestamp) <= MINIMUM_TIME_DIFFERENCE_FIRST_AND_LAST_PUFFS) {
-            int i = 4;
+        if (last10PuffsRev.size() >= MINIMUM_PUFFS_IN_EPISODE && Math.abs(last10PuffsRev.get(0).timestamp - last10PuffsRev.get(3).timestamp) <= MINIMUM_TIME_DIFFERENCE_FIRST_AND_LAST_PUFFS) {
+            int i = MINIMUM_PUFFS_IN_EPISODE;
             while (last10PuffsRev.size() > i && Math.abs(last10PuffsRev.get(0).timestamp - last10PuffsRev.get(i).timestamp) <= MINIMUM_TIME_DIFFERENCE_FIRST_AND_LAST_PUFFS)
                 i++;
             long currentTimestamp = last10PuffsRev.get(i - 1).timestamp;
@@ -64,6 +66,25 @@ public class SmokingEpisodeGeneration {
                 smokingEpisodeDataStream.add(new DataPoint(currentTimestamp, 1));
             }
         }
+
+/*        DataPointStream smokingLapseEpisodeDataStream = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_SMOKING_LAPSE_EPISODE);
+        smokingLapseEpisodeDataStream.setHistoricalBufferSize(1);
+
+        last10Puffs = getLastNHistoricalValue(puffLabelDataStream, 10);
+        last10PuffsRev = new ArrayList<DataPoint>();
+        for (int i=last10Puffs.size()-1; i>=0; i--)
+            last10PuffsRev.add(last10Puffs.get(i));
+
+        if (last10PuffsRev.size() >= MINIMUM_PUFFS_IN_LAPSE_EPISODE && Math.abs(last10PuffsRev.get(0).timestamp - last10PuffsRev.get(3).timestamp) <= MINIMUM_TIME_DIFFERENCE_FIRST_AND_LAST_PUFFS) {
+            int i = MINIMUM_PUFFS_IN_LAPSE_EPISODE;
+            while (last10PuffsRev.size() > i && Math.abs(last10PuffsRev.get(0).timestamp - last10PuffsRev.get(i).timestamp) <= MINIMUM_TIME_DIFFERENCE_FIRST_AND_LAST_PUFFS)
+                i++;
+            long currentTimestamp = last10PuffsRev.get(i - 1).timestamp;
+            DataPoint lastEpi = getLastHistoricalValue(smokingLapseEpisodeDataStream);
+            if (lastEpi == null || currentTimestamp - lastEpi.timestamp > MINIMUM_TIME_DIFFERENCE_BETWEEN_EPISODES) {
+                smokingLapseEpisodeDataStream.add(new DataPoint(currentTimestamp, 1));
+            }
+        }*/
     }
 
     public List<DataPoint> getLastNHistoricalValue(DataPointStream dataPointStream, int n) {

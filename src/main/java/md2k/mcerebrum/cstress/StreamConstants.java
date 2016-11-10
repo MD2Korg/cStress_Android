@@ -132,6 +132,7 @@ public class StreamConstants {
     public static final String ORG_MD2K_PUFFMARKER_PUFFLABEL_MINUTE = "org.md2k.puffMarker.pufflabel.minute";
     public static final String ORG_MD2K_PUFFMARKER_PUFF_COUNT_PER_MINUTE = "org.md2k.puffMarker.puffcount.perminute";
     public static final String ORG_MD2K_PUFFMARKER_SMOKING_EPISODE = "org.md2k.puffMarker.smoking.episode";
+    public static final String ORG_MD2K_PUFFMARKER_SMOKING_LAPSE_EPISODE = "org.md2k.puffMarker.smoking.lapse";
     public static final String ORG_MD2K_PUFFMARKER_RESPIRATION_CYCLE_COUNT = "org.md2k.puffMarker.respiration.cycle.count";
 
     public static final String ORG_MD2K_PUFFMARKER_DATA_RIP = "org.md2k.puffmarker.data.rip";
@@ -168,6 +169,8 @@ public class StreamConstants {
     public static final String ORG_MD2K_PUFFMARKER_DATA_GYRO_INTERSECTIONS = "org.md2k.puffmarker.data.gyr.intersections";
     public static final String ORG_MD2K_PUFFMARKER_DATA_CANDIDATE_INTERSECTIONS = "org.md2k.puffmarker.data.candidate.intersections";
     public static final String ORG_MD2K_PUFFMARKER_DATA_ACCEL_Y_INTERSECTIONS = "org.md2k.puffmarker.data.accel.y.intersections";
+    public static final String ORG_MD2K_PUFFMARKER_DATA_ACCL_Y_MAG800 = "org.md2k.puffmarker.data.accl.y.mag_800";
+    public static final String ORG_MD2K_PUFFMARKER_DATA_ACCL_Y_MAG8000 = "org.md2k.puffmarker.data.accl.y.mag_8000";
     public static final String ORG_MD2K_PUFFMARKER_DATA_WRIST_ROLL = "org.md2k.puffmarker.data.wrist.roll";
     public static final String ORG_MD2K_PUFFMARKER_DATA_WRIST_PITCH = "org.md2k.puffmarker.data.wrist.pitch";
 

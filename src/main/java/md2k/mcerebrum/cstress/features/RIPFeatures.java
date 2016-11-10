@@ -95,24 +95,23 @@ public class RIPFeatures {
         DataPointStream valleysFiltered = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_RIP_VALLEYS_FILTERED);
         DataPointStream peaksFiltered = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_RIP_PEAKS_FILTERED);
         filterPeaksAndValleys(peaksFiltered, valleysFiltered, respirationDuration, inspirationAmplitude, peaks, valleys, meanInspirationAmplitude); //TODO: Is this a bug in that the following code does not utilize peaksFiltered and valleysFiltered?
-
-
+        
         //Key features
 
-        for (int i = 0; i < valleys.data.size() - 1; i++) {
+        for (int i = 0; i < valleysFiltered.data.size() - 1; i++) {
 
-            datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_RIP_INSPDURATION).add(new DataPoint(valleys.data.get(i).timestamp, peaks.data.get(i).timestamp - valleys.data.get(i).timestamp));
-            datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_RIP_EXPRDURATION).add(new DataPoint(peaks.data.get(i).timestamp, valleys.data.get(i + 1).timestamp - peaks.data.get(i).timestamp));
-            datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_RIP_RESPDURATION).add(new DataPoint(valleys.data.get(i).timestamp, valleys.data.get(i + 1).timestamp - valleys.data.get(i).timestamp));
+            datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_RIP_INSPDURATION).add(new DataPoint(valleysFiltered.data.get(i).timestamp, peaksFiltered.data.get(i).timestamp - valleysFiltered.data.get(i).timestamp));
+            datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_RIP_EXPRDURATION).add(new DataPoint(peaksFiltered.data.get(i).timestamp, valleysFiltered.data.get(i + 1).timestamp - peaksFiltered.data.get(i).timestamp));
+            datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_RIP_RESPDURATION).add(new DataPoint(valleysFiltered.data.get(i).timestamp, valleysFiltered.data.get(i + 1).timestamp - valleysFiltered.data.get(i).timestamp));
 
-            datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_RIP_STRETCH).add(new DataPoint(valleys.data.get(i).timestamp, peaks.data.get(i).value - valleys.data.get(i).value));
+            datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_RIP_STRETCH).add(new DataPoint(valleysFiltered.data.get(i).timestamp, peaksFiltered.data.get(i).value - valleysFiltered.data.get(i).value));
 
             DataPoint inratio = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_RIP_INSPDURATION).data.get(datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_RIP_INSPDURATION).data.size() - 1);
             DataPoint exratio = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_RIP_EXPRDURATION).data.get(datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_RIP_EXPRDURATION).data.size() - 1);
 
-            (datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_RIP_IERATIO)).add(new DataPoint(valleys.data.get(i).timestamp, inratio.value / exratio.value));
+            (datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_RIP_IERATIO)).add(new DataPoint(valleysFiltered.data.get(i).timestamp, inratio.value / exratio.value));
 
-            DataPoint rsa = rsaCalculateCycle(valleys.data.get(i).timestamp, valleys.data.get(i + 1).timestamp, datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_ECG_RR));
+            DataPoint rsa = rsaCalculateCycle(valleysFiltered.data.get(i).timestamp, valleysFiltered.data.get(i + 1).timestamp, datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_ECG_RR));
             if (rsa.value != -1.0) { //Only add if a valid value
                 (datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_RIP_RSA)).add(rsa);
             }
@@ -120,11 +119,11 @@ public class RIPFeatures {
         }
 
 
-        (datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_RIP_BREATH_RATE)).add(new DataPoint(datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_RIP).data.get(datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_RIP).data.size() - 1).timestamp, valleys.data.size() - 1));
+        (datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_RIP_BREATH_RATE)).add(new DataPoint(datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_RIP).data.get(datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_RIP).data.size() - 1).timestamp, valleysFiltered.data.size() - 1));
 
         double minuteVentilation = 0.0;
-        for (int i = 0; i < valleys.data.size() - 1; i++) {
-            minuteVentilation += (peaks.data.get(i).timestamp - valleys.data.get(i).timestamp) / 1000.0 * (peaks.data.get(i).value - valleys.data.get(i).value) / 2.0;
+        for (int i = 0; i < valleysFiltered.data.size() - 1; i++) {
+            minuteVentilation += (peaksFiltered.data.get(i).timestamp - valleysFiltered.data.get(i).timestamp) / 1000.0 * (peaksFiltered.data.get(i).value - valleysFiltered.data.get(i).value) / 2.0;
         }
 
         (datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_RIP_MINUTE_VENTILATION)).add(new DataPoint(datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_RIP).data.get(datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_RIP).data.size() - 1).timestamp, minuteVentilation));
