@@ -83,7 +83,7 @@ public class AutosenseWristFeatures {
         Smoothing.smooth(gyr_mag_8000, gyr_mag, slowSize);
 
         DataPointStream gyr_intersections = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_GYRO_INTERSECTIONS + wrist);
-        segmentationUsingTwoMovingAverage(gyr_intersections, gyr_mag_8000, gyr_mag_800, 0, 2);
+        segmentationUsingTwoMovingAverage(gyr_intersections, gyr_mag_8000, gyr_mag_800, 0, 4);
 
         DataPointStream accelx = datastreams.getDataPointStream(PUFFMARKER.ORG_MD2K_PUFF_MARKER_DATA_ACCEL_X + wrist);
         DataPointStream accely = datastreams.getDataPointStream(PUFFMARKER.ORG_MD2K_PUFF_MARKER_DATA_ACCEL_Y + wrist);
@@ -91,6 +91,7 @@ public class AutosenseWristFeatures {
         DataPointStream accelx2min = datastreams.getDataPointStream(PUFFMARKER.ORG_MD2K_PUFF_MARKER_DATA_ACCEL_X_2_MIN + wrist);
         DataPointStream accely2min = datastreams.getDataPointStream(PUFFMARKER.ORG_MD2K_PUFF_MARKER_DATA_ACCEL_Y_2_MIN + wrist);
         DataPointStream accelz2min = datastreams.getDataPointStream(PUFFMARKER.ORG_MD2K_PUFF_MARKER_DATA_ACCEL_Z_2_MIN + wrist);
+        wLen = (int) Math.round(PUFFMARKER.BUFFER_SIZE_3MIN_SEC * (Double) datastreams.getDataPointStream(PUFFMARKER.ORG_MD2K_PUFF_MARKER_DATA_ACCEL_X+wrist).metadata.get("frequency"));
         accelx2min.setHistoricalBufferSize(wLen);
         accely2min.setHistoricalBufferSize(wLen);
         accelz2min.setHistoricalBufferSize(wLen);
@@ -100,9 +101,9 @@ public class AutosenseWristFeatures {
         mergeWithPreviousData(accelz, accelz2min, timestamp2minbefore);
         doInterpolation(accelx2min, accely2min, accelz2min, null, null, null);
 
-        DataPointStream acl_y_800 = datastreams.getDataPointStream("org.md2k.cstress.data.accel.y.mag800" + wrist);
+        DataPointStream acl_y_800 = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_ACCL_Y_MAG800 + wrist);
         Smoothing.smooth(acl_y_800, accely2min, firstSize);
-        DataPointStream acl_y_8000 = datastreams.getDataPointStream("org.md2k.cstress.data.accel.y.mag8000" + wrist);
+        DataPointStream acl_y_8000 = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_ACCL_Y_MAG8000 + wrist);
         Smoothing.smooth(acl_y_8000, accely2min, slowSize);
         DataPointStream acl_intersections = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_ACCEL_Y_INTERSECTIONS+ wrist);
 //        segmentationUsingTwoMovingAverage(acl_intersections, acl_y_8000, acl_y_800, 0, 2);
