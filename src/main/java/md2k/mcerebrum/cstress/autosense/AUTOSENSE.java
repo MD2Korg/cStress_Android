@@ -78,7 +78,7 @@ public class AUTOSENSE {
     public static final int RPEAK_INTERPEAK_LIMIT = 500;
     public static final int SAMPLE_LENGTH_SECS = 60;
 
-    public static final double ACTIVITY_THRESHOLD = 0.35;
+    public static final double ACTIVITY_THRESHOLD = 0.21; //From Figure 3: http://www.cs.memphis.edu/~santosh/Papers/Timing-JIT-UbiComp-2014.pdf
     public static final int ACCEL_WINDOW_SIZE = 10000;
     public static final double AUTOSENSE_ECG_QUALITY = 0.67;
     public static final double AUTOSENSE_RIP_QUALITY = 0.67;
