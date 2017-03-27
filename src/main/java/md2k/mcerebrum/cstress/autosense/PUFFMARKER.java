@@ -107,6 +107,6 @@ public class PUFFMARKER {
     public static int NOT_PUFF = 0;
     public static int UNSURE = 2;
 
-    public static final int BUFFER_SIZE_2MIN_SEC = 2*60;
-    public static final int BUFFER_SIZE_3MIN_SEC = 3*60;
+    public static final int BUFFER_SIZE_HALF_MIN_SEC = 30;
+
 }

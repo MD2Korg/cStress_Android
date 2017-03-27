@@ -52,10 +52,10 @@ public class CSVParser implements Iterable<CSVDataPoint> {
         try {
             scanner = new Scanner(file);
             while (scanner.hasNext()) {
-                tokens = scanner.nextLine().split(" ");
-                double ts = Double.parseDouble(tokens[1]);
+                tokens = scanner.nextLine().split(",");
+                double ts = Double.parseDouble(tokens[0]);
                 timestamp = (long) ts;
-                data = Double.parseDouble(tokens[0]);
+                data = Double.parseDouble(tokens[1]);
 
                 tempPacket = new CSVDataPoint(channel, timestamp, data);
                 this.data.add(tempPacket);

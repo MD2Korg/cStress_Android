@@ -61,15 +61,20 @@ public class RIPPuffmarkerFeatures {
 
         DataPointStream rip = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_RIP);
         DataPointStream rip2min = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP);
-        int wLen = (int) Math.round(PUFFMARKER.BUFFER_SIZE_2MIN_SEC * ((MetadataDouble) datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_RIP).metadata.get("frequency")).value);
+        int wLen = (int) Math.round(PUFFMARKER.BUFFER_SIZE_HALF_MIN_SEC * ((MetadataDouble) datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_RIP).metadata.get("frequency")).value);
         rip2min.setHistoricalBufferSize(wLen);
-        long timestamp2minbefore = rip.data.get(0).timestamp - PUFFMARKER.BUFFER_SIZE_2MIN_SEC * 1000;
+        long timestamp2minbefore = rip.data.get(0).timestamp - PUFFMARKER.BUFFER_SIZE_HALF_MIN_SEC * 1000;
         List<DataPoint> listHistoryRIP = new ArrayList<>(rip2min.getHistoricalValues(timestamp2minbefore));
         rip2min.addAll(listHistoryRIP);
         rip2min.addAll(rip.data);
 
         DataPointStream rip_smooth = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_SMOOTH);
-        Smoothing.smooth(rip_smooth, rip2min, AUTOSENSE.PEAK_VALLEY_SMOOTHING_SIZE);
+        Smoothing.smooth(rip_smooth, rip2min, AUTOSENSE.PEAK_VALLEY_SMOOTHING_SIZE+3);
+
+/*
+        DataPointStream rip_smooth_kalman = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_SMOOTH+".KALMAN.FILTER");
+        kalmanFilter(rip2min, rip_smooth_kalman, 500, 1, 50);
+*/
 
         int windowLength = (int) Math.round(AUTOSENSE.WINDOW_LENGTH_SECS * ((MetadataDouble) datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_DATA_RIP).metadata.get("frequency")).value);
         DataPointStream rip_mac = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_MAC);
@@ -83,29 +88,19 @@ public class RIPPuffmarkerFeatures {
         DataPointStream downInterceptsFiltered = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_DOWN_INTERCEPTS_FILTERED);
         filterIntercepts(upInterceptsFiltered, downInterceptsFiltered, upIntercepts, downIntercepts);
 
-        DataPointStream upInterceptsFiltered1sec = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_UP_INTERCEPTS_FILTERED_1SEC);
-        DataPointStream downInterceptsFiltered1sec = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_DOWN_INTERCEPTS_FILTERED_1SEC);
-        filter1Second(upInterceptsFiltered1sec, downInterceptsFiltered1sec, upInterceptsFiltered, downInterceptsFiltered);
-
-        DataPointStream upInterceptsFiltered1sect20 = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_UP_INTERCEPTS_FILTERED_1SEC_T20);
-        DataPointStream downInterceptsFiltered1sect20 = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_DOWN_INTERCEPTS_FILTERED_1SEC_T20);
-        filtert20second(upInterceptsFiltered1sect20, downInterceptsFiltered1sect20, upInterceptsFiltered1sec, downInterceptsFiltered1sec);
+        DataPointStream upInterceptsFilteredTime = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_UP_INTERCEPTS_FILTERED_TIME);
+        DataPointStream downInterceptsFilteredTime = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_DOWN_INTERCEPTS_FILTERED_TIME);
+        filterByTime(upInterceptsFilteredTime, downInterceptsFilteredTime, upInterceptsFiltered, downInterceptsFiltered);
 
         DataPointStream peaks = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_PEAKS);
-        generatePeaks(peaks, upInterceptsFiltered1sect20, downInterceptsFiltered1sect20, rip_smooth);
+        generatePeaks(peaks, upInterceptsFilteredTime, downInterceptsFilteredTime, rip2min); //rip2min
 
         DataPointStream valleys = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_VALLEYS);
-        generateValleys(valleys, upInterceptsFiltered1sect20, downInterceptsFiltered1sect20, rip_smooth);
-
-        DataPointStream inspirationAmplitude = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_INSPIRATION_AMPLITUDE);
-        double meanInspirationAmplitude = generateInspirationAmplitude(inspirationAmplitude, peaks, valleys);
-
-        DataPointStream respirationDuration = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_RESPIRATION_DURATION);
-        generateRespirationDuration(respirationDuration, valleys);
+        generateValleys(valleys, upInterceptsFilteredTime, downInterceptsFilteredTime, rip2min);//rip2min
 
         DataPointStream valleysFiltered = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_VALLEYS_FILTERED);
         DataPointStream peaksFiltered = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_PEAKS_FILTERED);
-        filterPeaksAndValleys(peaksFiltered, valleysFiltered, respirationDuration, inspirationAmplitude, peaks, valleys, meanInspirationAmplitude);
+        filterPeaksAndValleys(peaksFiltered, valleysFiltered,  peaks, valleys);
 
         datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_RESPIRATION_CYCLE_COUNT).add(new DataPoint(rip.data.get(0).timestamp, valleysFiltered.data.size()));
 
@@ -122,62 +117,65 @@ public class RIPPuffmarkerFeatures {
         DataPointStream stretchDataStream = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_STRETCH);
         stretchDataStream.setHistoricalBufferSize(BUFFER_SIZE);
 
-        if (valleysFiltered.data.get(0).timestamp > peaksFiltered.data.get(0).timestamp) {
-            System.out.println("PEAK_LESS_VALLEY");
-        }
+        int nCycle = valleysFiltered.data.size() - 1;
 
-        for (int i = 0; i < valleysFiltered.data.size() - 1; i++) {
+        for (int i = 0; i < nCycle; i++) {
+            long timestamp = valleysFiltered.data.get(i).timestamp;
 
-            DataPoint inspDuration = new DataPoint(valleysFiltered.data.get(i).timestamp, peaksFiltered.data.get(i).timestamp - valleysFiltered.data.get(i).timestamp);
+            DataPoint inspDuration = new DataPoint(timestamp, peaksFiltered.data.get(i).timestamp - valleysFiltered.data.get(i).timestamp);
             inspDurationDataStream.add(inspDuration);
 
-            DataPoint exprDuration = new DataPoint(peaksFiltered.data.get(i).timestamp, valleysFiltered.data.get(i + 1).timestamp - peaksFiltered.data.get(i).timestamp);
+            DataPoint exprDuration = new DataPoint(timestamp, valleysFiltered.data.get(i + 1).timestamp - peaksFiltered.data.get(i).timestamp);
             exprDurationDataStream.add(exprDuration);
 
-            DataPoint respDuration = new DataPoint(valleysFiltered.data.get(i).timestamp, valleysFiltered.data.get(i + 1).timestamp - valleysFiltered.data.get(i).timestamp);
+            DataPoint respDuration = new DataPoint(timestamp, valleysFiltered.data.get(i + 1).timestamp - valleysFiltered.data.get(i).timestamp);
             respDurationDataStream.add(respDuration);
 
-            DataPoint stretch = new DataPoint(valleysFiltered.data.get(i).timestamp, peaksFiltered.data.get(i).value - valleysFiltered.data.get(i).value);
+            DataPoint stretch = new DataPoint(timestamp, peaksFiltered.data.get(i).value - valleysFiltered.data.get(i + 1).value);
             stretchDataStream.add(stretch);
 
             (datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_IERATIO)).add(new DataPoint(valleysFiltered.data.get(i).timestamp, inspDuration.value / exprDuration.value));
         }
-        for (int i = 0; i < valleysFiltered.data.size() - 2; i++) {
-            DataPoint inspDuration = inspDurationDataStream.data.get(i);
-            double nextInspDurationValue = inspDurationDataStream.data.get(i + 1).value;
-            double preInspDurationValue = getPreviousValue(inspDurationDataStream, i, -1, 0);
+        for (int i = 0; i < nCycle; i++) {
+            long timestamp = valleysFiltered.data.get(i).timestamp;
+            double backwardInspDur = 0;
+            double backwardExprDur = 0;
+            double backwardRespDur = 0;
+            double backwardStretchDur = 0;
+            double forwardInspDur = 0;
+            double forwardExprDur = 0;
+            double forwardRespDur = 0;
+            double forwardStretchDur = 0;
 
-            DataPoint exprDuration = exprDurationDataStream.data.get(i);
-            double nextExpDurationValue = exprDurationDataStream.data.get(i + 1).value;
-            double preExpDurationValue = getPreviousValue(exprDurationDataStream, i, -1, 0);
+            if (i > 0) {
+                backwardInspDur = inspDurationDataStream.data.get(i).value - inspDurationDataStream.data.get(i - 1).value;
+                backwardExprDur = exprDurationDataStream.data.get(i).value - exprDurationDataStream.data.get(i - 1).value;
+                backwardRespDur = respDurationDataStream.data.get(i).value - respDurationDataStream.data.get(i - 1).value;
+                backwardStretchDur = stretchDataStream.data.get(i).value - stretchDataStream.data.get(i - 1).value;
+            }
+            if (i < nCycle-1) {
+                forwardInspDur = inspDurationDataStream.data.get(i).value - inspDurationDataStream.data.get(i + 1).value;
+                forwardExprDur = exprDurationDataStream.data.get(i).value - exprDurationDataStream.data.get(i + 1).value;
+                forwardRespDur = respDurationDataStream.data.get(i).value - respDurationDataStream.data.get(i + 1).value;
+                forwardStretchDur = stretchDataStream.data.get(i).value - stretchDataStream.data.get(i + 1).value;
+            }
 
-            DataPoint respDuration = respDurationDataStream.data.get(i);
-            double nextRespDurationValue = respDurationDataStream.data.get(i + 1).value;
-            double preRespDurationValue = getPreviousValue(respDurationDataStream, i, -1, 0);
+            (datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_INSPDURATION_BACK_DIFFERENCE)).add(new DataPoint(timestamp, backwardInspDur));
+            (datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_INSPDURATION_FORWARD_DIFFERENCE)).add(new DataPoint(timestamp, forwardInspDur));
 
-            DataPoint stretch = stretchDataStream.data.get(i);
-            double nextStretchValue = stretchDataStream.data.get(i + 1).value;
-            double preStretchValue = getPreviousValue(stretchDataStream, i, -1, 0);
+            (datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_EXPRDURATION_BACK_DIFFERENCE)).add(new DataPoint(timestamp, backwardExprDur));
+            (datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_EXPRDURATION_FORWARD_DIFFERENCE)).add(new DataPoint(timestamp, forwardExprDur));
 
-            (datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_INSPDURATION_BACK_DIFFERENCE)).add(new DataPoint(inspDuration.timestamp, inspDuration.value - preInspDurationValue));
-            (datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_INSPDURATION_FORWARD_DIFFERENCE)).add(new DataPoint(inspDuration.timestamp, inspDuration.value-nextInspDurationValue));
+            (datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_RESPDURATION_BACK_DIFFERENCE)).add(new DataPoint(timestamp, backwardRespDur));
+            (datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_RESPDURATION_FORWARD_DIFFERENCE)).add(new DataPoint(timestamp, forwardRespDur));
 
-            (datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_EXPRDURATION_BACK_DIFFERENCE)).add(new DataPoint(exprDuration.timestamp, exprDuration.value - preExpDurationValue));
-            (datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_EXPRDURATION_FORWARD_DIFFERENCE)).add(new DataPoint(exprDuration.timestamp, exprDuration.value-nextExpDurationValue));
+            (datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_STRETCH_BACK_DIFFERENCE)).add(new DataPoint(timestamp, backwardStretchDur));
+            (datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_STRETCH_FORWARD_DIFFERENCE)).add(new DataPoint(timestamp, forwardStretchDur));
 
-            (datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_RESPDURATION_BACK_DIFFERENCE)).add(new DataPoint(respDuration.timestamp, respDuration.value - preRespDurationValue));
-            (datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_RESPDURATION_FORWARD_DIFFERENCE)).add(new DataPoint(respDuration.timestamp, respDuration.value-nextRespDurationValue));
-
-            (datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_STRETCH_BACK_DIFFERENCE)).add(new DataPoint(stretch.timestamp, stretch.value - preStretchValue));
-            (datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_STRETCH_FORWARD_DIFFERENCE)).add(new DataPoint(stretch.timestamp, stretch.value-nextStretchValue));
-        }
-
-        int len = Math.min(exprDurationDataStream.data.size(), stretchDataStream.data.size());
-        for (int i = 0; i < valleysFiltered.data.size() - 2; i++) {
             double d5_stretch = 0;
             double d5_exp = 0;
             int cnt = 0;
-            for (int j = -2; j <= 2 && i + j < len; j++) {
+            for (int j = -2; j <= 2 && i + j < nCycle; j++) {
                 if (i + j < 0 || j == 0) continue;
                 d5_stretch += stretchDataStream.data.get(i + j).value;
                 d5_exp += exprDurationDataStream.data.get(i + j).value;
@@ -187,54 +185,36 @@ public class RIPPuffmarkerFeatures {
             d5_stretch = stretchDataStream.data.get(i).value / d5_stretch;
             d5_exp /= cnt;
             d5_exp = exprDurationDataStream.data.get(i).value / d5_exp;
+
             (datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_D5_STRETCH)).add(new DataPoint(valleysFiltered.data.get(i).timestamp, d5_stretch));
             (datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_D5_EXPRDURATION)).add(new DataPoint(valleysFiltered.data.get(i).timestamp, d5_exp));
-        }
 
-        int currentRespirationIndex = 0;
-        DataPoint currentRespiration = respDurationDataStream.data.get(currentRespirationIndex++);
-        double maxAmplitude = 0;
-        double minAmplitude = Double.MAX_VALUE;
-        double maxRateOfChange = 0;
-        double minRateOfChange = Double.MAX_VALUE;
+            double maxAmplitude = 0;
+            double minAmplitude = Double.MAX_VALUE;
 
-/*
-        for (int i = 1; i < rip.data.size() && currentRespirationIndex < respDurationDataStream.data.size(); i++) {
-            if (rip.data.get(i).timestamp > currentRespiration.timestamp) {
-                //TODO
-                (datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_MAX_AMPLITUDE)).add(new DataPoint(currentRespiration.timestamp, (maxAmplitude-minAmplitude)/2));
-                (datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_MIN_AMPLITUDE)).add(new DataPoint(currentRespiration.timestamp, (minAmplitude-maxAmplitude)/2 ));
-                (datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_MAX_RATE_OF_CHANGE)).add(new DataPoint(currentRespiration.timestamp, maxRateOfChange));
-                (datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_MIN_RATE_OF_CHANGE)).add(new DataPoint(currentRespiration.timestamp, minRateOfChange));
-
-                maxAmplitude = 0;
-                minAmplitude = Double.MAX_VALUE;
-                maxRateOfChange = 0;
-                minRateOfChange = Double.MAX_VALUE;
-                currentRespiration = respDurationDataStream.data.get(currentRespirationIndex++);
-            }
-            maxAmplitude = Math.max(maxAmplitude, rip.data.get(i).value);
-            minAmplitude = Math.min(minAmplitude, rip.data.get(i).value);
-            maxRateOfChange = Math.max(maxRateOfChange, rip.data.get(i).value - rip.data.get(i - 1).value);
-            minRateOfChange = Math.min(minRateOfChange, rip.data.get(i).value - rip.data.get(i - 1).value);
-        }
-*/
-        for (int i=0; i<valleysFiltered.data.size()-2; i++) {
             for (int j=0; j<rip2min.data.size()-1;j++) {
                 if (rip2min.data.get(j).timestamp == rip2min.data.get(j+1).timestamp) continue;
-                if (rip2min.data.get(j).timestamp>valleysFiltered.data.get(i).timestamp && rip2min.data.get(j).timestamp<valleysFiltered.data.get(i+1).timestamp) {
+
+                if (rip2min.data.get(j).timestamp>=valleysFiltered.data.get(i).timestamp && rip2min.data.get(j).timestamp<=valleysFiltered.data.get(i+1).timestamp) {
                     maxAmplitude = Math.max(maxAmplitude, rip2min.data.get(j).value);
                     minAmplitude = Math.min(minAmplitude, rip2min.data.get(j).value);
-                    maxRateOfChange = Math.max(maxRateOfChange, (rip2min.data.get(j+1).value - rip2min.data.get(j).value)/(rip2min.data.get(j+1).timestamp - rip2min.data.get(j).timestamp));
-                    minRateOfChange = Math.min(minRateOfChange, (rip2min.data.get(j+1).value - rip2min.data.get(j).value)/(rip2min.data.get(j+1).timestamp - rip2min.data.get(j).timestamp));
                 }
             }
-            (datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_MAX_AMPLITUDE)).add(new DataPoint(currentRespiration.timestamp, (maxAmplitude-minAmplitude)/2));
-            (datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_MIN_AMPLITUDE)).add(new DataPoint(currentRespiration.timestamp, (minAmplitude-maxAmplitude)/2 ));
-            (datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_MAX_RATE_OF_CHANGE)).add(new DataPoint(currentRespiration.timestamp, maxRateOfChange));
-            (datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_MIN_RATE_OF_CHANGE)).add(new DataPoint(currentRespiration.timestamp, minRateOfChange));
-        }
+            (datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_MAX_AMPLITUDE)).add(new DataPoint(timestamp, (maxAmplitude-minAmplitude)/2));
+            (datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_RIP_MIN_AMPLITUDE)).add(new DataPoint(timestamp, (minAmplitude-maxAmplitude)/2 ));
 
+        }
+    }
+
+    private void kalmanFilter(DataPointStream rip2min, DataPointStream rip_filter_signal, double p, double q, double r) {
+        double x=0;
+        for (DataPoint dp:rip2min.data) {
+            p=p+q;
+            double k = p / (p+r);
+            x = x+k*(dp.value-x);
+            p = (1-k)*p;
+            rip_filter_signal.add(new DataPoint(dp.timestamp, x));
+        }
     }
 
     private double getPreviousValue(DataPointStream dataPointStream, int currentIndex, int previousOffset, double defaultValue) {
@@ -250,67 +230,31 @@ public class RIPPuffmarkerFeatures {
      *
      * @param peaksFiltered            Filtered peaks output
      * @param valleysFiltered          Filtered valleys output
-     * @param respirationDuration      Input respiration duration
-     * @param inspirationAmplitude     Input inspiration amplitude
      * @param peaks                    Peak datastream
      * @param valleys                  Valley datastream
-     * @param meanInspirationAmplitude Average inspiration amplitude
      */
-    private void filterPeaksAndValleys(DataPointStream peaksFiltered, DataPointStream valleysFiltered, DataPointStream respirationDuration, DataPointStream inspirationAmplitude, DataPointStream peaks, DataPointStream valleys, double meanInspirationAmplitude) {
+    private void filterPeaksAndValleys(DataPointStream peaksFiltered, DataPointStream valleysFiltered, DataPointStream peaks, DataPointStream valleys) {
 
-        for (int i1 = 0; i1 < respirationDuration.data.size(); i1++) {
-            double duration = respirationDuration.data.get(i1).value / 1000.0;
-            if (duration > 1.0 && duration < 12.0) { //Passes length test
-                if (inspirationAmplitude.data.get(i1).value > (AUTOSENSE.INSPIRATION_EXPIRATION_AMPLITUDE_THRESHOLD_FACTOR * meanInspirationAmplitude)) { //Passes amplitude test
-                    valleysFiltered.add(valleys.data.get(i1));
-                    peaksFiltered.add(peaks.data.get(i1));
-                }
+        List<DataPoint> tempValleys = new ArrayList<DataPoint>();
+        List<DataPoint> tempPeaks = new ArrayList<DataPoint>();
+        double TH_MIN_INS_EXP_DUR = 400;
+
+        for (int i1 = 0; i1 < valleys.data.size(); i1++) {
+            if (peaks.data.get(i1).timestamp - valleys.data.get(i1).timestamp > TH_MIN_INS_EXP_DUR) {
+                tempValleys.add(valleys.data.get(i1));
+                tempPeaks.add(peaks.data.get(i1));
             }
         }
-        valleysFiltered.add(valleys.data.get(valleys.data.size() - 1)); //Add last valley that was skipped by loop
+        valleysFiltered.add(tempValleys.get(0));
 
-    }
-
-    /**
-     * Compute respiration duration from valley data stream
-     * <p>
-     * Reference: Matlab code \\TODO
-     * </p>
-     *
-     * @param respirationDuration Output respiration durations
-     * @param valleys             Input valley datastream
-     */
-    private void generateRespirationDuration(DataPointStream respirationDuration, DataPointStream valleys) {
-
-        for (int i1 = 0; i1 < valleys.data.size() - 1; i1++) {
-            respirationDuration.add(new DataPoint(valleys.data.get(i1).timestamp, valleys.data.get(i1 + 1).timestamp - valleys.data.get(i1).timestamp));
+        for (int i1 = 1; i1 < tempValleys.size(); i1++) {
+            if (tempValleys.get(i1).timestamp - tempPeaks.get(i1-1).timestamp  > TH_MIN_INS_EXP_DUR) {
+                peaksFiltered.add(tempPeaks.get(i1-1));
+                valleysFiltered.add(tempValleys.get(i1));
+            }
         }
-
+        peaksFiltered.add(tempPeaks.get(tempPeaks.size()-1));
     }
-
-    /**
-     * Compute inspiration amplitude from peaks and valleys
-     * <p>
-     * Reference: Matlab code \\TODO
-     * </p>
-     *
-     * @param ia      Inspiration amplitude datastream output
-     * @param peaks   Input peak datastream
-     * @param valleys Input valleys datastream
-     * @return
-     */
-    private double generateInspirationAmplitude(DataPointStream ia, DataPointStream peaks, DataPointStream valleys) {
-        SummaryStatistics inspirationAmplitude = new SummaryStatistics();
-
-        for (int i1 = 0; i1 < valleys.data.size() - 1; i1++) {
-            double inspAmp = (peaks.data.get(i1).value - valleys.data.get(i1).value);
-            ia.add(new DataPoint(valleys.data.get(i1).timestamp, inspAmp));
-            inspirationAmplitude.addValue(inspAmp);
-        }
-
-        return inspirationAmplitude.getMean();
-    }
-
 
     /**
      * Compute valleys in a respiration datastream
@@ -319,14 +263,14 @@ public class RIPPuffmarkerFeatures {
      * </p>
      *
      * @param valleys                       Output valley datastream
-     * @param upInterceptsFiltered1sect20   Up intercept datastream
-     * @param downInterceptsFiltered1sect20 Down insercept datastream
+     * @param U   Up intercept datastream
+     * @param D Down insercept datastream
      * @param rip_smooth                    Smoothed RIP datastream
      */
-    private void generateValleys(DataPointStream valleys, DataPointStream upInterceptsFiltered1sect20, DataPointStream downInterceptsFiltered1sect20, DataPointStream rip_smooth) {
+    private void generateValleys(DataPointStream valleys, DataPointStream U, DataPointStream D, DataPointStream rip_smooth) {
 
-        for (int i1 = 0; i1 < upInterceptsFiltered1sect20.data.size() - 1; i1++) {
-            DataPoint valley = findValley(downInterceptsFiltered1sect20.data.get(i1), upInterceptsFiltered1sect20.data.get(i1), rip_smooth);
+        for (int i1 = 0; i1 < D.data.size() - 1; i1++) {
+            DataPoint valley = findMinPoint(D.data.get(i1), U.data.get(i1), rip_smooth);
             if (valley.timestamp != 0) {
                 valleys.add(valley);
             }
@@ -340,41 +284,16 @@ public class RIPPuffmarkerFeatures {
      * </p>
      *
      * @param peaks                         Output valley datastream
-     * @param upInterceptsFiltered1sect20   Up intercept datastream
-     * @param downInterceptsFiltered1sect20 Down insercept datastream
+     * @param U   Up intercept datastream
+     * @param D Down insercept datastream
      * @param rip_smooth                    Smoothed RIP datastream
      */
-    private void generatePeaks(DataPointStream peaks, DataPointStream upInterceptsFiltered1sect20, DataPointStream downInterceptsFiltered1sect20, DataPointStream rip_smooth) {
+    private void generatePeaks(DataPointStream peaks, DataPointStream U, DataPointStream D, DataPointStream rip_smooth) {
 
-        for (int i1 = 0; i1 < upInterceptsFiltered1sect20.data.size() - 1; i1++) {
-            DataPoint peak = findPeak(upInterceptsFiltered1sect20.data.get(i1), downInterceptsFiltered1sect20.data.get(i1 + 1), rip_smooth);
+        for (int i1 = 1; i1 < D.data.size(); i1++) {
+            DataPoint peak = findMaxPoint(U.data.get(i1-1), D.data.get(i1), rip_smooth);
             if (peak.timestamp != 0) {
                 peaks.add(peak);
-            }
-        }
-
-    }
-
-    /**
-     * Filter up and down intercepts based on 1/20 of a second
-     * <p>
-     * Reference: Matlab code \\TODO
-     * </p>
-     *
-     * @param upInterceptsFiltered1sect20   Output filtered up intercepts
-     * @param downInterceptsFiltered1sect20 Output filtered down intercepts
-     * @param upInterceptsFiltered1sec      Input up intercepts
-     * @param downInterceptsFiltered1sec    Input down intercepts
-     */
-    private void filtert20second(DataPointStream upInterceptsFiltered1sect20, DataPointStream downInterceptsFiltered1sect20, DataPointStream upInterceptsFiltered1sec, DataPointStream downInterceptsFiltered1sec) {
-
-        if (downInterceptsFiltered1sec.data.size() > 0) {
-            downInterceptsFiltered1sect20.add(downInterceptsFiltered1sec.data.get(0));
-            for (int i1 = 0; i1 < upInterceptsFiltered1sec.data.size(); i1++) {
-                if ((downInterceptsFiltered1sec.data.get(i1 + 1).timestamp - upInterceptsFiltered1sec.data.get(i1).timestamp) > (2.0 / 20.0)) {
-                    downInterceptsFiltered1sect20.add(downInterceptsFiltered1sec.data.get(i1 + 1));
-                    upInterceptsFiltered1sect20.add(upInterceptsFiltered1sec.data.get(i1));
-                }
             }
         }
 
@@ -386,22 +305,34 @@ public class RIPPuffmarkerFeatures {
      * Reference: Matlab code \\TODO
      * </p>
      *
-     * @param upInterceptsFiltered1sec   Output filtered up intercepts
-     * @param downInterceptsFiltered1sec Output filtered down intercepts
-     * @param upInterceptsFiltered       Input up intercepts
-     * @param downInterceptsFiltered     Input down intercepts
+     * @param UTime   Output filtered up intercepts
+     * @param DTime Output filtered down intercepts
+     * @param U       Input up intercepts
+     * @param D     Input down intercepts
      */
-    private void filter1Second(DataPointStream upInterceptsFiltered1sec, DataPointStream downInterceptsFiltered1sec, DataPointStream upInterceptsFiltered, DataPointStream downInterceptsFiltered) {
+    private void filterByTime(DataPointStream UTime, DataPointStream DTime, DataPointStream U, DataPointStream D) {
+        double TH_MIN_GAP_INS_EXP = 50.0;
 
-        for (int i1 = 1; i1 < downInterceptsFiltered.data.size(); i1++) {
-            if ((downInterceptsFiltered.data.get(i1).timestamp - downInterceptsFiltered.data.get(i1 - 1).timestamp) > 1000.0) {
-                downInterceptsFiltered1sec.add(downInterceptsFiltered.data.get(i1 - 1));
-                upInterceptsFiltered1sec.add(upInterceptsFiltered.data.get(i1 - 1));
+        DTime.add(D.data.get(0));
+        int i=0;
+        while (U.data.get(i).timestamp < D.data.get(0).timestamp+TH_MIN_GAP_INS_EXP) i++;
+        UTime.add(U.data.get(i));
+
+        for (int i1 = i+1; i1 < D.data.size()-1; i1++) {
+            if ((U.data.get(i1).timestamp - D.data.get(i1).timestamp) < TH_MIN_GAP_INS_EXP) {
+                continue;
+            } else if ((D.data.get(i1).timestamp - UTime.data.get(UTime.data.size()-1).timestamp) < TH_MIN_GAP_INS_EXP) {
+                UTime.data.get(UTime.data.size()-1).timestamp = U.data.get(i1).timestamp;
+                UTime.data.get(UTime.data.size()-1).value = U.data.get(i1).value;
+            } else {
+                DTime.add(D.data.get(i1));
+                UTime.add(U.data.get(i1));
             }
         }
-        downInterceptsFiltered1sec.add(downInterceptsFiltered.data.get(downInterceptsFiltered.data.size() - 1));
+        DTime.add(D.data.get(D.data.size() - 1));
 
     }
+
 
     /**
      * Filter up and down intercepts
@@ -466,9 +397,9 @@ public class RIPPuffmarkerFeatures {
     private void generateIntercepts(DataPointStream upIntercepts, DataPointStream downIntercepts, DataPointStream rip_smooth, DataPointStream rip_mac) {
         for (int i1 = 1; i1 < rip_mac.data.size() - 1; i1++) {
 
-            if (rip_smooth.data.get(i1 - 1).value < rip_mac.data.get(i1).value && rip_smooth.data.get(i1 + 1).value > rip_mac.data.get(i1).value) {
+            if (rip_smooth.data.get(i1 - 1).value < rip_mac.data.get(i1).value && rip_smooth.data.get(i1 + 1).value >= rip_mac.data.get(i1).value) {
                 upIntercepts.add(rip_mac.data.get(i1));
-            } else if (rip_smooth.data.get(i1 - 1).value > rip_mac.data.get(i1).value && rip_smooth.data.get(i1 + 1).value < rip_mac.data.get(i1).value) {
+            } else if (rip_smooth.data.get(i1 - 1).value >= rip_mac.data.get(i1).value && rip_smooth.data.get(i1 + 1).value < rip_mac.data.get(i1).value) {
                 downIntercepts.add(rip_mac.data.get(i1));
             }
 
@@ -612,6 +543,57 @@ public class RIPPuffmarkerFeatures {
         } else {
             return new DataPoint(0, 0.0);
         }
+    }
+
+    /**
+     * Identifies peaks in a datastream
+     * <p>
+     * Reference: Matlab code \\TODO
+     * </p>
+     *
+     * @param endPoint Down intercept DataPoint
+     * @param startPoint   Up intercept DataPoint
+     * @param data          Input datastream
+     * @return Peak point from data located between the upIntercept and downIntercept
+     */
+    public DataPoint findMaxPoint(DataPoint startPoint, DataPoint endPoint, DataPointStream data) {
+
+        ArrayList<DataPoint> temp = new ArrayList<DataPoint>();
+        DataPoint max = new DataPoint(0, -222222.0);
+        for (int i = 0; i < data.data.size(); i++) { //Identify potential data points
+            if (startPoint.timestamp <= data.data.get(i).timestamp && data.data.get(i).timestamp <= endPoint.timestamp) {
+                temp.add(data.data.get(i));
+                if (data.data.get(i).value > max.value)
+                    max = data.data.get(i);
+            }
+        }
+        return max;
+    }
+
+
+    /**
+     * Identifies peaks in a datastream
+     * <p>
+     * Reference: Matlab code \\TODO
+     * </p>
+     *
+     * @param endPoint Down intercept DataPoint
+     * @param startPoint   Up intercept DataPoint
+     * @param data          Input datastream
+     * @return Peak point from data located between the upIntercept and downIntercept
+     */
+    public DataPoint findMinPoint(DataPoint startPoint, DataPoint endPoint, DataPointStream data) {
+
+        ArrayList<DataPoint> temp = new ArrayList<DataPoint>();
+        DataPoint min = new DataPoint(0, 2222222);
+        for (int i = 0; i < data.data.size(); i++) { //Identify potential data points
+            if (startPoint.timestamp <= data.data.get(i).timestamp && data.data.get(i).timestamp <= endPoint.timestamp) {
+                temp.add(data.data.get(i));
+                if (data.data.get(i).value < min.value)
+                    min = data.data.get(i);
+            }
+        }
+        return min;
     }
 
 }

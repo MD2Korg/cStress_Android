@@ -62,8 +62,8 @@ public class AutosenseWristFeatures {
         DataPointStream gyroy2min = datastreams.getDataPointStream(PUFFMARKER.ORG_MD2K_PUFF_MARKER_DATA_GYRO_Y_2_MIN + wrist);
         DataPointStream gyroz2min = datastreams.getDataPointStream(PUFFMARKER.ORG_MD2K_PUFF_MARKER_DATA_GYRO_Z_2_MIN + wrist);
 
-        int wLen = (int) Math.round(PUFFMARKER.BUFFER_SIZE_3MIN_SEC * ((MetadataDouble) datastreams.getDataPointStream(PUFFMARKER.ORG_MD2K_PUFF_MARKER_DATA_GYRO_X + wrist).metadata.get("frequency")).value);
-        long timestamp2minbefore = gyrox.data.get(0).timestamp - PUFFMARKER.BUFFER_SIZE_2MIN_SEC * 1000;
+        int wLen = (int) Math.round(PUFFMARKER.BUFFER_SIZE_HALF_MIN_SEC * ((MetadataDouble) datastreams.getDataPointStream(PUFFMARKER.ORG_MD2K_PUFF_MARKER_DATA_GYRO_X + wrist).metadata.get("frequency")).value);
+        long timestamp2minbefore = gyrox.data.get(0).timestamp - PUFFMARKER.BUFFER_SIZE_HALF_MIN_SEC * 1000;
         gyrox2min.setHistoricalBufferSize(wLen);
         gyroy2min.setHistoricalBufferSize(wLen);
         gyroz2min.setHistoricalBufferSize(wLen);
@@ -93,7 +93,7 @@ public class AutosenseWristFeatures {
         DataPointStream accely2min = datastreams.getDataPointStream(PUFFMARKER.ORG_MD2K_PUFF_MARKER_DATA_ACCEL_Y_2_MIN + wrist);
         DataPointStream accelz2min = datastreams.getDataPointStream(PUFFMARKER.ORG_MD2K_PUFF_MARKER_DATA_ACCEL_Z_2_MIN + wrist);
 
-        wLen = (int) Math.round(PUFFMARKER.BUFFER_SIZE_3MIN_SEC * ((MetadataDouble) datastreams.getDataPointStream(PUFFMARKER.ORG_MD2K_PUFF_MARKER_DATA_ACCEL_X + wrist).metadata.get("frequency")).value);
+        wLen = (int) Math.round(PUFFMARKER.BUFFER_SIZE_HALF_MIN_SEC * ((MetadataDouble) datastreams.getDataPointStream(PUFFMARKER.ORG_MD2K_PUFF_MARKER_DATA_ACCEL_X + wrist).metadata.get("frequency")).value);
 
         accelx2min.setHistoricalBufferSize(wLen);
         accely2min.setHistoricalBufferSize(wLen);
@@ -104,19 +104,23 @@ public class AutosenseWristFeatures {
         mergeWithPreviousData(accelz, accelz2min, timestamp2minbefore);
         doInterpolation(accelx2min, accely2min, accelz2min, null, null, null);
 
+        DataPointStream acl_x_800 = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_ACCL_X_MAG800 + wrist);
+        Smoothing.smooth(acl_x_800, accelx2min, firstSize);
+        DataPointStream acl_z_800 = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_ACCL_Z_MAG800 + wrist);
+        Smoothing.smooth(acl_z_800, accelz2min, firstSize);
         DataPointStream acl_y_800 = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_ACCL_Y_MAG800 + wrist);
         Smoothing.smooth(acl_y_800, accely2min, firstSize);
         DataPointStream acl_y_8000 = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_ACCL_Y_MAG8000 + wrist);
         Smoothing.smooth(acl_y_8000, accely2min, slowSize);
         DataPointStream acl_intersections = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_ACCEL_Y_INTERSECTIONS+ wrist);
 //        segmentationUsingTwoMovingAverage(acl_intersections, acl_y_8000, acl_y_800, 0, 2);
-        segmentationUsingThreshold(acl_intersections, acl_y_800, 0.30, 2);
+        segmentationUsingThreshold(acl_intersections, acl_y_800, 0.20, 2);
 
         DataPointStream roll = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_WRIST_ROLL + wrist);
         DataPointStream pitch = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_WRIST_PITCH + wrist);
-        //TODO: add yaw
+        DataPointStream yaw = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_PUFFMARKER_DATA_WRIST_YAW + wrist);
 
-        calculateRollPitchSegment(roll, pitch, accelx2min, accely2min, accelz2min);
+        calculateRollPitchYawSegment(roll, pitch, yaw, acl_x_800, acl_y_800, acl_z_800);
     }
 
     /**
@@ -221,6 +225,18 @@ public class AutosenseWristFeatures {
         return 180 * Math.atan2(-ay, -az) / Math.PI;
     }
 
+    /**
+     * Compute yaw from accelerometer inputs
+     *
+     * @param ax Accelerometer x-axis
+     * @param ay Accelerometer y-axis
+     * @param az Accelerometer z-axis
+     * @return
+     */
+    public static double yaw(double ax, double ay, double az) {
+        return 180 * Math.atan2(ay, ax) / Math.PI;
+    }
+
     private void mergeWithPreviousData(DataPointStream currentDataStream, DataPointStream mergedDataStream, long timestamp) {
 
         List<DataPoint> listHistory = new ArrayList<>(mergedDataStream.getHistoricalValues(timestamp));
@@ -246,12 +262,14 @@ public class AutosenseWristFeatures {
      * @param accely Input accelerometer y datastream
      * @param accelz Input accelerometer z datastream
      */
-    private void calculateRollPitchSegment(DataPointStream roll, DataPointStream pitch, DataPointStream accelx, DataPointStream accely, DataPointStream accelz) {
+    private void calculateRollPitchYawSegment(DataPointStream roll, DataPointStream pitch, DataPointStream yaw, DataPointStream accelx, DataPointStream accely, DataPointStream accelz) {
         for (int i = 0; i < accelx.data.size(); i++) {
             double rll = roll(accelx.data.get(i).value, accely.data.get(i).value, accelz.data.get(i).value);
             double ptch = pitch(accelx.data.get(i).value, accely.data.get(i).value, accelz.data.get(i).value);
+            double yw = yaw(accelx.data.get(i).value, accely.data.get(i).value, accelz.data.get(i).value);
             roll.data.add(new DataPoint(accelx.data.get(i).timestamp, rll));
             pitch.data.add(new DataPoint(accelx.data.get(i).timestamp, ptch));
+            yaw.data.add(new DataPoint(accelx.data.get(i).timestamp, yw));
         }
     }
 

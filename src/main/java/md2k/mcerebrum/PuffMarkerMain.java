@@ -1,5 +1,8 @@
 package md2k.mcerebrum;
 
+import md2k.mcerebrum.cstress.autosense.PUFFMARKER;
+
+import java.io.File;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -32,6 +35,9 @@ import java.util.concurrent.Executors;
 
 public class PuffMarkerMain {
     static int[][] sIds = {{}, {2, 3, 4, 5}, {3, 4, 5, 6, 7}, {1, 2, 3}, {1}, {1}, {1}};
+    static String cStressRIPModelPath = "";
+    static String cStressModelPath = "";
+    static String puffMarkerModelPath = "";
 
     /**
      * Main driver class for replaying AutoSense data through StreamProcessor
@@ -41,24 +47,42 @@ public class PuffMarkerMain {
 
     public static void main(String[] args) {
 
-        String path = "C:\\Users\\nsleheen\\DATA\\6smoker_lab_csv_data\\";// args[0];
-        String pathToPuffMarkerModelFile = "C:\\Users\\nsleheen\\projects\\MD2Korg\\stream-processor\\model_puffmarker.json";// args[1];
+        String path = args[0];
+        String cStressRIPModelPath = args[1];
+        String cStressModelPath = args[2];
+        String puffMarkerModelPath = args[3];
 
-        for (int i = 1; i < 7; i++) {
-            String person = "p" + String.format("%02d", i);
-            for (int sid : sIds[i]) {
-                doProcess(person, sid, path, pathToPuffMarkerModelFile);
+        trainPuffMarkerLabData(path); // for training data
+//        runPuffmarkerAllsession(path, new String[]{"2006"}); // for testing
+    }
+
+    private static void trainPuffMarkerLabData(String path) {
+        runPuffmarkerAllsession(path, new String[]{ "p01", "p02", "p03", "p04", "p05", "p06"});
+    }
+
+    public static void runPuffmarkerAllsession(String dir, String[] pids) {
+
+        for (String pid : pids) {
+
+            File filefolder = new File(dir+ pid);
+            for (final File file : filefolder.listFiles()) {
+                String session = file.getName();
+                if (!session.startsWith("s")) continue;
+
+                System.out.println(dir + pid+ "\\" + session);
+                System.out.println("-------------------------------------------------------------------------------------------");
+
+                doProcess(pid, session, dir);
             }
         }
     }
 
-
-    private static void doProcess(String pid, int sid, String path, String pathToPuffMarkerModelFile) {
+    private static void doProcess(String pid, String sid, String path) {
 
         ExecutorService executor = Executors.newFixedThreadPool(4);
-        String session = "s" + String.format("%02d", sid);
-        Runnable worker = new WorkerThread(path + pid + "\\" + session + "\\", "C:\\Users\\nsleheen\\projects\\MD2Korg\\stream-processor\\cStressModelV4.json"
-                , "C:\\Users\\nsleheen\\projects\\MD2Korg\\stream-processor\\cStressModelRIPv4.json", pathToPuffMarkerModelFile);
+//        String session = "s" + String.format("%02d", sid);
+        String session = sid;
+        Runnable worker = new WorkerThread(path + pid + "\\" + session + "\\", cStressModelPath, cStressRIPModelPath, puffMarkerModelPath);
         executor.execute(worker);
         executor.shutdown();
         while (!executor.isTerminated()) ;

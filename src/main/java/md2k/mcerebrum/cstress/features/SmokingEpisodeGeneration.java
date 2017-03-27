@@ -17,7 +17,7 @@ public class SmokingEpisodeGeneration {
     public static int MINIMUM_TIME_DIFFERENCE_BETWEEN_EPISODES = 10 * 60 * 1000;
     public static int MINIMUM_TIME_DIFFERENCE_FIRST_AND_LAST_PUFFS = 5 * 60 * 1000;
     public static int MINIMUM_INTER_PUFF_DURATION = 5 * 1000;
-    public static int MINIMUM_PUFFS_IN_EPISODE = 4;
+    public static int MINIMUM_PUFFS_IN_EPISODE = 5;
     public static int MINIMUM_PUFFS_IN_LAPSE_EPISODE = 4;
 
     public SmokingEpisodeGeneration(DataStreams datastreams) {
@@ -56,7 +56,7 @@ public class SmokingEpisodeGeneration {
         for (int i=last10Puffs.size()-1; i>=0; i--)
             last10PuffsRev.add(last10Puffs.get(i));
 
-        if (last10PuffsRev.size() >= MINIMUM_PUFFS_IN_EPISODE && Math.abs(last10PuffsRev.get(0).timestamp - last10PuffsRev.get(3).timestamp) <= MINIMUM_TIME_DIFFERENCE_FIRST_AND_LAST_PUFFS) {
+        if (last10PuffsRev.size() >= MINIMUM_PUFFS_IN_EPISODE && Math.abs(last10PuffsRev.get(0).timestamp - last10PuffsRev.get(MINIMUM_PUFFS_IN_EPISODE-1).timestamp) <= MINIMUM_TIME_DIFFERENCE_FIRST_AND_LAST_PUFFS) {
             int i = MINIMUM_PUFFS_IN_EPISODE;
             while (last10PuffsRev.size() > i && Math.abs(last10PuffsRev.get(0).timestamp - last10PuffsRev.get(i).timestamp) <= MINIMUM_TIME_DIFFERENCE_FIRST_AND_LAST_PUFFS)
                 i++;
