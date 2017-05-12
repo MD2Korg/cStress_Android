@@ -169,4 +169,6 @@ public class StreamConstants {
     public static final String ORG_MD2K_PUFFMARKER_DATA_WRIST_YAW = "org.md2k.puffmarker.data.wrist.yaw";
 
 
+    public static final String ORG_MD2K_CSTRESS_STRESS_EPISODE_ARRAY_CLASSIFICATION = "org.md2k.cstress.stress.episode.array.classification";
+    public static final String ORG_MD2K_CSTRESS_STRESS_EPISODE_START = "org.md2k.cstress.stress.episode.start.csv";
 }

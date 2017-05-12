@@ -1,12 +1,15 @@
 package md2k.mcerebrum.cstress.features;
 
 import md2k.mcerebrum.cstress.StreamConstants;
+import md2k.mcerebrum.cstress.library.datastream.DataArrayStream;
 import md2k.mcerebrum.cstress.library.datastream.DataPointStream;
 import md2k.mcerebrum.cstress.library.datastream.DataStreams;
 import md2k.mcerebrum.cstress.library.signalprocessing.Smoothing;
 import md2k.mcerebrum.cstress.library.structs.DataPoint;
+import md2k.mcerebrum.cstress.library.structs.DataPointArray;
 
 import java.util.List;
+import java.util.ArrayList;
 
 /*
  * Copyright (c) 2016, The University of Memphis, MD2K Center
@@ -75,6 +78,12 @@ public class StressEpisodeClassification {
         dsEmaHistogram.setHistoricalBufferSize(BUFFER_SIZE_SMALL);
 
         DataPointStream dsStressEpisodeClassification = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_STRESS_EPISODE_CLASSIFICATION);
+        dsStressEpisodeClassification.setHistoricalBufferSize(BUFFER_SIZE_SMALL);
+
+        DataArrayStream arStressEpisodeClassification = datastreams.getDataArrayStream(StreamConstants.ORG_MD2K_CSTRESS_STRESS_EPISODE_ARRAY_CLASSIFICATION);
+        arStressEpisodeClassification.setHistoricalBufferSize(BUFFER_SIZE_SMALL);
+
+        DataPointStream dsStressEpisodeStart = datastreams.getDataPointStream(StreamConstants.ORG_MD2K_CSTRESS_STRESS_EPISODE_START);
         dsStressEpisodeClassification.setHistoricalBufferSize(BUFFER_SIZE_SMALL);
 
 
@@ -157,6 +166,10 @@ public class StressEpisodeClassification {
             //Episode is ended; Started Increasing again
             long episodeStartTimestamp = getEpisodeStartTimestamp(datastreams);
             if(episodeStartTimestamp==-1) {
+                List<Double> stressEpisodeValues = new ArrayList<Double>();
+                stressEpisodeValues.add((double) -1);
+                stressEpisodeValues.add(StressEpisodeClass.NotClassified.value);
+                arStressEpisodeClassification.add(new DataPointArray(episodeStartTimestamp, stressEpisodeValues));
                 dsStressEpisodeClassification.add(new DataPoint(stressProbability.timestamp, StressEpisodeClass.NotClassified.value));
             } else {
                 List<DataPoint> listAvailable = dsStressProbabilityAvailable.getHistoricalValues(episodeStartTimestamp);
@@ -167,10 +180,20 @@ public class StressEpisodeClassification {
                 double proportionAvailable = sumAvailable / listAvailable.size();
                 if (proportionAvailable < .5) {
                     //More than 50% data is lost.
+                    dsStressEpisodeStart.add(new DataPoint(episodeStartTimestamp, StressEpisodeClass.Unknown.value));
+                    List<Double> stressEpisodeValues = new ArrayList<Double>();
+                    stressEpisodeValues.add((double) stressProbability.timestamp);
+                    stressEpisodeValues.add(StressEpisodeClass.Unknown.value);
+                    arStressEpisodeClassification.add(new DataPointArray(episodeStartTimestamp, stressEpisodeValues));
                     dsStressEpisodeClassification.add(new DataPoint(stressProbability.timestamp, StressEpisodeClass.Unknown.value));
                 } else {
                     List<DataPoint> listStressProbability = dsStressProbabilitySmoothed.getHistoricalValues(episodeStartTimestamp);
                     if(listStressProbability.size()==0) {
+                        dsStressEpisodeStart.add(new DataPoint(episodeStartTimestamp, StressEpisodeClass.Unknown.value));
+                        List<Double> stressEpisodeValues = new ArrayList<Double>();
+                        stressEpisodeValues.add((double) stressProbability.timestamp);
+                        stressEpisodeValues.add(StressEpisodeClass.Unknown.value);
+                        arStressEpisodeClassification.add(new DataPointArray(episodeStartTimestamp, stressEpisodeValues));
                         dsStressEpisodeClassification.add(new DataPoint(stressProbability.timestamp, StressEpisodeClass.Unknown.value));
                     } else {
                         double sumStressProbability = 0;
@@ -179,10 +202,25 @@ public class StressEpisodeClassification {
                         }
                         double stressDensity = sumStressProbability / listStressProbability.size();
                         if (stressDensity >= thresholdYes) {
+                            dsStressEpisodeStart.add(new DataPoint(episodeStartTimestamp, StressEpisodeClass.YesStress.value));
+                            List<Double> stressEpisodeValues = new ArrayList<Double>();
+                            stressEpisodeValues.add((double) stressProbability.timestamp);
+                            stressEpisodeValues.add(StressEpisodeClass.YesStress.value);
+                            arStressEpisodeClassification.add(new DataPointArray(episodeStartTimestamp, stressEpisodeValues));
                             dsStressEpisodeClassification.add(new DataPoint(stressProbability.timestamp, StressEpisodeClass.YesStress.value));
                         } else if (stressDensity <= thresholdNo) {
+                            dsStressEpisodeStart.add(new DataPoint(episodeStartTimestamp, StressEpisodeClass.NotStress.value));
+                            List<Double> stressEpisodeValues = new ArrayList<Double>();
+                            stressEpisodeValues.add((double) stressProbability.timestamp);
+                            stressEpisodeValues.add(StressEpisodeClass.NotStress.value);
+                            arStressEpisodeClassification.add(new DataPointArray(episodeStartTimestamp, stressEpisodeValues));
                             dsStressEpisodeClassification.add(new DataPoint(stressProbability.timestamp, StressEpisodeClass.NotStress.value));
                         } else {
+                            dsStressEpisodeStart.add(new DataPoint(episodeStartTimestamp, StressEpisodeClass.Unsure.value));
+                            List<Double> stressEpisodeValues = new ArrayList<Double>();
+                            stressEpisodeValues.add((double) stressProbability.timestamp);
+                            stressEpisodeValues.add(StressEpisodeClass.Unsure.value);
+                            arStressEpisodeClassification.add(new DataPointArray(episodeStartTimestamp, stressEpisodeValues));
                             dsStressEpisodeClassification.add(new DataPoint(stressProbability.timestamp, StressEpisodeClass.Unsure.value));
                         }
                     }
