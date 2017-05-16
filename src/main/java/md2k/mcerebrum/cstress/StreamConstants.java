@@ -169,7 +169,8 @@ public class StreamConstants {
     public static final String ORG_MD2K_PUFFMARKER_DATA_WRIST_YAW = "org.md2k.puffmarker.data.wrist.yaw";
     public static final String ORG_MD2K_CSTRESS_DATA_ECG_RANGE = "org.md2k.cstress.data.ecg.range";
     public static final String ORG_MD2K_CSTRESS_DATA_RIP_RANGE = "org.md2k.cstress.data.rip.range";
-
-    public static final String ORG_MD2K_CSTRESS_STRESS_EPISODE_ARRAY_CLASSIFICATION = "org.md2k.cstress.stress.episode.array.classification";
-    public static final String ORG_MD2K_CSTRESS_STRESS_EPISODE_START = "org.md2k.cstress.stress.episode.start.csv";
+    public static final String ORG_MD2K_CSTRESS_STRESS_EPISODE_ARRAY_CLASSIFICATION_FULL_EPISODE = "org.md2k.cstress.stress.episode.array.classification.fullepisode";
+    public static final String ORG_MD2K_CSTRESS_STRESS_EPISODE_START = "org.md2k.cstress.stress.episode.start";
+    public static final String ORG_MD2K_CSTRESS_STRESS_EPISODE_PEAK = "org.md2k.cstress.stress.episode.peak";
+    public static final String ORG_MD2K_CSTRESS_STRESS_EPISODE_END = "org.md2k.cstress.stress.episode.end";
 }
